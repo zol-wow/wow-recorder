@@ -20,6 +20,7 @@ import {
   mapStringToEncoder,
   translateQuality,
 } from './rendererutils';
+import { useRecorderCapabilities } from './useRecorderCapabilities';
 import Label from './components/Label/Label';
 import {
   ToggleGroup,
@@ -67,6 +68,10 @@ const VideoBaseControls: FC<IProps> = (props: IProps) => {
   const initialRender = useRef(true);
   const highRes = isHighRes(config.obsOutputResolution);
   const [encoders, setEncoders] = useState<Encoder[]>([]);
+  const caps = useRecorderCapabilities();
+  const availableEncoders = encoders.filter((enc) =>
+    caps.encoders.includes(enc.value),
+  );
 
   // This is the current value the app was launched with.
   const [hardwareAcceleration, setHardwareAcceleration] =
@@ -76,12 +81,12 @@ const VideoBaseControls: FC<IProps> = (props: IProps) => {
     const getAvailableEncoders = async () => {
       const allEncoders = await ipc.invoke('getEncoders', []);
 
-      const availableEncoders = allEncoders
+      const filteredEncoders = allEncoders
         .filter((s: string) => encoderFilter(s, highRes))
         .map(mapStringToEncoder)
         .sort((a: Encoder, b: Encoder) => a.type < b.type);
 
-      setEncoders(availableEncoders);
+      setEncoders(filteredEncoders);
     };
 
     const getHardwareAccel = async () => {
@@ -378,7 +383,7 @@ const VideoBaseControls: FC<IProps> = (props: IProps) => {
               />
             </SelectTrigger>
             <SelectContent>
-              {encoders.map((encoder) => (
+              {availableEncoders.map((encoder) => (
                 <SelectItem key={encoder.name} value={encoder.value}>
                   {mapEncoderToString(encoder, language)}
                 </SelectItem>
