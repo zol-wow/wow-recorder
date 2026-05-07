@@ -627,7 +627,7 @@ export default class CloudClient implements StorageClient {
     key: string,
     url: string,
     dir: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     progressCallback = (_progress: number) => {},
   ) {
     console.info('[CloudClient] Downloading file from cloud store', key);
@@ -751,7 +751,7 @@ export default class CloudClient implements StorageClient {
   public async putFile(
     file: string,
     rate = -1,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     progressCallback = (_progress: number) => {},
   ) {
     const key = path.basename(file);
@@ -982,7 +982,7 @@ export default class CloudClient implements StorageClient {
   private async doSinglePartUpload(
     file: string,
     rate: number,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     progressCallback = (_progress: number) => {},
   ) {
     const key = path.basename(file);
@@ -1053,7 +1053,7 @@ export default class CloudClient implements StorageClient {
   private async doMultiPartUpload(
     file: string,
     rate: number,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     progressCallback = (_progress: number) => {},
   ) {
     const key = path.basename(file);

@@ -17,7 +17,6 @@ import {
   getMetadataForVideo,
   rendererVideoToMetadata,
   getFileInfo,
-  fixPathWhenPackaged,
   logAxiosError,
   buildKillVideoMetadata,
   getOBSFormattedDate,
@@ -30,21 +29,22 @@ import axios from 'axios';
 import DiskClient from 'storage/DiskClient';
 import Recorder from './Recorder';
 import { promises as fspromise } from 'fs';
+import { getFfmpegPathProvider } from 'main/platform';
 
 const atomicQueue = require('atomic-queue');
 const devMode = process.env.NODE_ENV === 'development';
 const isDebug = devMode || process.env.DEBUG_PROD === 'true';
 
-// Use the dynamically linked ffmpeg.exe we package with OBS in noobs. This
-// allows us to avoid including a static ffmpeg.exe which is an extra 60MB.
-const ffmpegPathRel = 'node_modules/noobs/dist/bin/ffmpeg.exe';
-
-let ffmpegPathAbs = devMode
-  ? path.resolve(__dirname, '../../release/app/', ffmpegPathRel)
-  : path.resolve(__dirname, '../../', ffmpegPathRel);
-
-ffmpegPathAbs = fixPathWhenPackaged(ffmpegPathAbs);
+const ffmpegPathAbs = getFfmpegPathProvider().getPath();
 ffmpeg.setFfmpegPath(ffmpegPathAbs);
+
+if (process.platform === 'darwin') {
+  // ffprobe ships next to ffmpeg via @ffprobe-installer; only the
+  // Mac path needs it today (Win uses noobs's bundled ffmpeg).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
+  const ffprobe = require('@ffprobe-installer/ffprobe');
+  ffmpeg.setFfprobePath(ffprobe.path);
+}
 
 /**
  * A queue for cutting videos to size.
@@ -735,6 +735,12 @@ export default class VideoProcessQueue {
 
     const outputPath = VideoProcessQueue.getOutputVideoPath(data, outputDir);
 
+    // mp4 muxer tags HEVC streams as `hev1` by default. Many players
+    // (QuickTime, react-player, browsers) only handle `hvc1`, which
+    // is why VT_HEVC recordings render black. Probe the source and
+    // force `hvc1` if needed. Pure copy, no re-encode.
+    const isHevc = await VideoProcessQueue.isHevcStream(data.source);
+
     const fn = ffmpeg(data.source)
       .setStartTime(start)
       .setDuration(data.duration)
@@ -751,13 +757,31 @@ export default class VideoProcessQueue {
       // some players, but does extend the video slightly depending on
       // the keyframe alignment.
       .outputOption('-avoid_negative_ts make_zero')
-      .outputOption('-movflags +faststart')
-      .output(outputPath);
+      .outputOption('-movflags +faststart');
+
+    if (isHevc) {
+      fn.outputOption('-tag:v hvc1');
+    }
+
+    fn.output(outputPath);
 
     console.time('[VideoProcessQueue] Video cut took:');
     await VideoProcessQueue.ffmpegWrapper(fn, 'Video cut');
     console.timeEnd('[VideoProcessQueue] Video cut took:');
     return outputPath;
+  }
+
+  private static isHevcStream(file: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      ffmpeg.ffprobe(file, (err, data) => {
+        if (err) {
+          resolve(false);
+          return;
+        }
+        const v = data.streams?.find((s: any) => s.codec_type === 'video');
+        resolve(v?.codec_name === 'hevc');
+      });
+    });
   }
 
   /**
