@@ -1,213 +1,51 @@
 import EventEmitter from 'events';
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
-import path from 'path';
-import { app } from 'electron';
-import ConfigService from 'config/ConfigService';
+import { getProcessPoller } from 'main/platform';
+import type { IProcessPoller } from 'main/platform/poller/IProcessPoller';
 import { Flavour, WowProcessEvent } from 'main/types';
 
 /**
- * The Poller singleton periodically checks the list of WoW active
- * processes. If the state changes, it emits a WowProcessEvent.
+ * Process poller singleton. Delegates to the platform-specific
+ * implementation (rust-ps.exe on Windows, pgrep on macOS in a later
+ * phase). Retained as a singleton so existing callers (`Manager`) do
+ * not need changes.
  */
 export default class Poller extends EventEmitter {
-  /**
-   * Singleton instance.
-   */
   private static instance: Poller;
+  private impl: IProcessPoller = getProcessPoller();
 
-  /**
-   * Config service handle.
-   */
-  private cfg: ConfigService = ConfigService.getInstance();
-
-  /**
-   * If a WoW process is running AND the corresponding record config is
-   * enabled. Includes various flavours of retail, classic and era.
-   */
-  private wowRunning = false;
-
-  /**
-   * Tracks what is currently running for each flavour of WoW.
-   */
-  private state = {
-    Retail: false,
-    Classic: false,
-    Forever: false,
-  };
-
-  /**
-   * Spawned child process.
-   */
-  private child: ChildProcessWithoutNullStreams | undefined;
-
-  /**
-   * Singleton instance.
-   */
-  private binary = app.isPackaged
-    ? path.join(process.resourcesPath, 'binaries', 'rust-ps.exe')
-    : path.join(app.getAppPath(), 'binaries', 'rust-ps.exe');
-
-  /**
-   * Create or get the singleton.
-   */
-  static getInstance() {
+  static getInstance(): Poller {
     if (!Poller.instance) Poller.instance = new Poller();
     return Poller.instance;
   }
 
-  /**
-   * Private constructor as part of the singleton pattern.
-   */
   private constructor() {
     super();
+    this.impl.on(WowProcessEvent.STARTED, (...args: unknown[]) =>
+      this.emit(WowProcessEvent.STARTED, ...args),
+    );
+    this.impl.on(WowProcessEvent.STOPPED, (...args: unknown[]) =>
+      this.emit(WowProcessEvent.STOPPED, ...args),
+    );
   }
 
-  /**
-   * Convienence method to check if WoW is running. Only returns true if WoW
-   * is running, and the configuration is setup to record that flavour of WoW.
-   */
-  public isWowRunning() {
-    return this.wowRunning;
+  isWowRunning(): boolean {
+    return this.impl.isWowRunning();
   }
 
   /**
    * Added for convenience when determining which flavour of WoW is currently
    * active when starting a manual recording. Most of the app doesn't care
    * about which flavour is currently active.
-   *
-   * A reminder we don't support multiboxing games (nor does Blizzard on the
-   * same account), which is why it's OK this is in order of preference.
    */
-  public getFlavor(): Flavour | null {
-    const { recordRetail, recordClassic, recordForever } =
-      this.coalesceRecordingConfig();
-
-    if (this.state.Retail && recordRetail) {
-      return Flavour.Retail;
-    }
-
-    if (this.state.Classic && recordClassic) {
-      return Flavour.Classic;
-    }
-
-    if (this.state.Forever && recordForever) {
-      return Flavour.Forever;
-    }
-
-    return null;
+  getFlavor(): Flavour | null {
+    return this.impl.getFlavor();
   }
 
-  /**
-   * Stop the poller and reset the state.
-   */
-  public stop() {
-    console.info('[Poller] Stop process poller');
-    this.wowRunning = false;
-
-    if (this.child) {
-      this.child.kill();
-      this.child = undefined;
-    }
+  start(): void {
+    this.impl.start();
   }
 
-  /**
-   * Start the poller.
-   */
-  public start() {
-    this.stop();
-    console.info('[Poller] Start process poller');
-
-    this.child = spawn(this.binary);
-    this.child.stdout.on('data', this.handleStdout);
-    this.child.stderr.on('data', this.handleStderr);
+  stop(): void {
+    this.impl.stop();
   }
-
-  /**
-   * Handle stdout data from the child process, this is a tiny blob of JSON
-   * in the format {"Retail":true, "Classic":false, "Forever":false}.
-   *
-   * We don't care to do anything better in the scenario of multiple processes
-   * running. We don't support users multi-boxing.
-   */
-  private handleStdout = (data: string) => {
-    let parsed;
-
-    try {
-      parsed = JSON.parse(data);
-    } catch {
-      // We can hit this on sleeping/resuming from sleep. Or anything
-      // else that blocks the event loop long enough to cause us to end up
-      // with more than one JSON entry. This used to log but it was just
-      // messy and experience has demonstrated it's never interesting.
-      return;
-    }
-
-    const { recordRetail, recordClassic, recordForever } =
-      this.coalesceRecordingConfig();
-
-    const { Retail, Classic, Forever } = parsed;
-
-    if (
-      this.state.Retail !== Retail ||
-      this.state.Classic !== Classic ||
-      this.state.Forever !== Forever
-    ) {
-      this.state = { Retail, Classic, Forever };
-      console.info('[Poller] State changed', this.state);
-
-      const count = [
-        this.state.Retail && recordRetail,
-        this.state.Classic && recordClassic,
-        this.state.Forever && recordForever,
-      ].filter(Boolean).length;
-
-      if (count > 1) {
-        // Not a disaster, but not a state we claim to support.
-        console.warn('[Poller] Multiple WoW processes detected', this.state);
-      }
-    }
-
-    const running =
-      (recordRetail && Retail) ||
-      (recordClassic && Classic) ||
-      (recordForever && Forever);
-
-    if (this.wowRunning === running) {
-      // Nothing to emit.
-      return;
-    }
-
-    if (running) {
-      this.emit(WowProcessEvent.STARTED);
-    } else {
-      this.emit(WowProcessEvent.STOPPED);
-    }
-
-    this.wowRunning = running;
-  };
-
-  /**
-   * Handle stderr, we don't expect to ever see this but log it incase
-   * anything weird happens.
-   */
-  private handleStderr = (data: string) => {
-    console.warn('[Poller] stderr returned from child process');
-    console.error(data);
-  };
-
-  /**
-   * Coalesce the recording configuration from the various flags in the config.
-   */
-  private coalesceRecordingConfig = () => {
-    return {
-      recordRetail:
-        this.cfg.get<boolean>('recordRetail') ||
-        this.cfg.get<boolean>('recordRetailPtr'),
-      recordClassic:
-        this.cfg.get<boolean>('recordClassic') ||
-        this.cfg.get<boolean>('recordClassicPtr') ||
-        this.cfg.get<boolean>('recordEra'),
-      recordForever: this.cfg.get<boolean>('recordForever'),
-    };
-  };
 }
