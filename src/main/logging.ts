@@ -2,6 +2,7 @@ import path from 'path';
 import { fixPathWhenPackaged } from './util';
 import log from 'electron-log/main';
 import fs from 'fs';
+import { app } from 'electron';
 
 /**
  * Returns a local date string in the format YYYY-MM-DD.
@@ -85,6 +86,12 @@ export const setupApplicationLogging = () => {
 };
 
 export const getApplicationLogDir = () => {
+  if (process.platform === 'darwin' && app.isPackaged) {
+    // Writing inside the .app bundle breaks its code signature, and
+    // Gatekeeper then refuses the next launch. Use ~/Library/Logs.
+    return app.getPath('logs');
+  }
+
   const parent = fixPathWhenPackaged(__dirname);
   const dir = 'logs';
   return path.join(parent, dir);

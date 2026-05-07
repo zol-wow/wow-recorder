@@ -6,8 +6,16 @@ import {
   RendererVideo,
   SceneItem,
 } from 'main/types';
-import { ObsProperty, SceneItemPosition, SourceDimensions } from 'noobs';
+import type {
+  ObsProperty,
+  SceneItemPosition,
+  SourceDimensions,
+} from 'main/platform/recorder/types';
 import { TChatMessageWithId } from 'types/api';
+import type {
+  PermissionsSnapshot,
+  PermissionKey,
+} from 'main/platform/permissions/IPermissionsGate';
 
 declare global {
   interface Window {
@@ -39,6 +47,36 @@ declare global {
         ): void;
         showPreview(): void;
         hidePreview(): void;
+        editorMouseDown(ev: {
+          offsetX: number;
+          offsetY: number;
+          button: number;
+          buttons: number;
+          altKey: boolean;
+          shiftKey: boolean;
+          metaKey: boolean;
+          ctrlKey: boolean;
+        }): void;
+        editorMouseMove(ev: {
+          offsetX: number;
+          offsetY: number;
+          button: number;
+          buttons: number;
+          altKey: boolean;
+          shiftKey: boolean;
+          metaKey: boolean;
+          ctrlKey: boolean;
+        }): void;
+        editorMouseUp(ev: {
+          offsetX: number;
+          offsetY: number;
+          button: number;
+          buttons: number;
+          altKey: boolean;
+          shiftKey: boolean;
+          metaKey: boolean;
+          ctrlKey: boolean;
+        }): void;
         disablePreview(): void;
 
         getSourcePosition(
@@ -101,6 +139,21 @@ declare global {
         setOpenInstantReplayFile(path: string | null): void;
         refreshCombatLogStatus(): void;
       };
+    };
+    permissions: {
+      snapshot: () => Promise<PermissionsSnapshot>;
+      openSettingsFor: (key: PermissionKey) => void;
+      refresh: () => Promise<PermissionsSnapshot>;
+    };
+    recorderCapabilities: {
+      get: () => Promise<
+        import('main/platform/recorder/IRecorderBackend').RecorderCapabilities
+      >;
+    };
+  }
+  interface Window {
+    platformInfo: {
+      platform: NodeJS.Platform;
     };
   }
 }

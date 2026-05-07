@@ -35,8 +35,9 @@ import { send } from './main';
 import { Readable } from 'stream';
 import { ESupportedEncoders } from './obsEnums';
 import Recorder from './Recorder';
-import { exec, execFile } from 'child_process';
-import { specializationById, wowInstallSearchPaths } from './constants';
+import { execFile } from 'child_process';
+import { specializationById } from './constants';
+import { getFileReveal, getWowPathResolver } from 'main/platform';
 import {
   getPlayerName,
   getPlayerSpecID,
@@ -111,8 +112,21 @@ const getSortedFiles = async (
     // suspect something in getFileInfo isn't as async as it could be.
     // If that can be solved, then we can drop the await here and then
     // do an await Promises.all() on the following line.
-
-    mappedFileInfo.push(await getFileInfo(files[i]));
+    //
+    // Tolerate files that disappear between the readdir and the stat —
+    // the .temp dir is a known race target (VideoProcessQueue deletes
+    // mkvs while Recorder.cleanup runs `getSortedFiles` from the
+    // reconfigure path). Drop missing entries rather than throwing,
+    // since the caller wants a snapshot of what's actually on disk.
+    try {
+      mappedFileInfo.push(await getFileInfo(files[i]));
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === 'ENOENT') {
+        continue;
+      }
+      throw err;
+    }
   }
 
   if (sortDirection === FileSortDirection.NewestFirst) {
@@ -294,12 +308,11 @@ const writeMetadataFile = async (videoPath: string, metadata: Metadata) => {
 };
 
 /**
- * Open a folder in system explorer.
+ * Reveal a file in the system file manager (Explorer on Windows,
+ * Finder on macOS).
  */
 const openSystemExplorer = (filePath: string) => {
-  const windowsPath = filePath.replace(/\//g, '\\');
-  const cmd = `explorer.exe /select,"${windowsPath}"`;
-  exec(cmd, () => {});
+  getFileReveal().reveal(filePath);
 };
 
 /**
@@ -1159,17 +1172,36 @@ const runFirstTimeSetupActionsObs = () => {
 const runFirstTimeSetupActionsNoObs = () => {
   const cfg = ConfigService.getInstance();
 
+  if (process.platform === 'darwin') {
+    if (cfg.get<string>('obsCaptureMode') === 'game_capture') {
+      console.info(
+        '[Util] Migrating obsCaptureMode game_capture → window_capture on macOS',
+      );
+      cfg.set('obsCaptureMode', 'window_capture');
+    }
+
+    const currentEncoder = cfg.get<string>('obsRecEncoder');
+    const macCompatibleEncoders = new Set(['OBS_X264']);
+    if (currentEncoder && !macCompatibleEncoders.has(currentEncoder)) {
+      console.info(
+        '[Util] Migrating obsRecEncoder',
+        currentEncoder,
+        '→ OBS_X264 on macOS',
+      );
+      cfg.set('obsRecEncoder', 'OBS_X264');
+    }
+  }
+
   const isRetailConfigured =
     cfg.get<boolean>('recordRetail') && cfg.get<string>('retailLogPath');
 
   if (!isRetailConfigured) {
     console.info('[Util] Attempt to first time configure retail installation');
+    const resolver = getWowPathResolver();
 
-    for (let i = 0; i < wowInstallSearchPaths.length; i++) {
-      const installPath = wowInstallSearchPaths[i] + '\\_retail_\\Logs';
-      const installExists = existsSync(installPath);
-
-      if (installExists) {
+    for (const root of resolver.searchRoots()) {
+      const installPath = resolver.joinLogPath(root, 'retail');
+      if (existsSync(installPath)) {
         console.info('[Util] Found retail WoW installation at', installPath);
         cfg.set('retailLogPath', installPath);
         cfg.set('recordRetail', true);
@@ -1183,12 +1215,11 @@ const runFirstTimeSetupActionsNoObs = () => {
 
   if (!isClassicConfigured) {
     console.info('[Util] Attempt to first time configure classic installation');
+    const resolver = getWowPathResolver();
 
-    for (let i = 0; i < wowInstallSearchPaths.length; i++) {
-      const installPath = wowInstallSearchPaths[i] + '\\_classic_\\Logs';
-      const installExists = existsSync(installPath);
-
-      if (installExists) {
+    for (const root of resolver.searchRoots()) {
+      const installPath = resolver.joinLogPath(root, 'classic');
+      if (existsSync(installPath)) {
         console.info('[Util] Found classic WoW installation at', installPath);
         cfg.set('classicLogPath', installPath);
         cfg.set('recordClassic', true);
