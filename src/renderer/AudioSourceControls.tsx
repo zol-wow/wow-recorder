@@ -717,11 +717,7 @@ const AudioSourceControls = (props: IProps) => {
     );
   };
 
-  const addSource = async (
-    type: AudioSourceType,
-    presetDevice?: string,
-    presetFriendly?: string,
-  ) => {
+  const addSource = async (type: AudioSourceType) => {
     const ids = config.audioSources.map((src) => src.id);
     let idx = 1;
 
@@ -732,13 +728,8 @@ const AudioSourceControls = (props: IProps) => {
 
     const id = `WCR Audio Source ${idx}`;
     const name = await ipc.createAudioSource(id, type);
-    let device: string | undefined =
-      type === AudioSourceType.PROCESS ? undefined : 'default';
-    let friendly: string | undefined = device;
-    if (presetDevice !== undefined) {
-      device = presetDevice;
-      friendly = presetFriendly ?? presetDevice;
-    }
+    const device = type === AudioSourceType.PROCESS ? undefined : 'default';
+    const friendly = device;
 
     const src: AudioSource = {
       id: name, // Careful to not assume we got the name we asked for.
@@ -819,20 +810,14 @@ const AudioSourceControls = (props: IProps) => {
             <PlusIcon className="px-0" />
             {getLocalePhrase(language, Phrase.AddMicrophoneButtonText)}
           </Button>
-          {window.platformInfo?.platform !== 'darwin' && (
-            <Button
-              onClick={() => addSource(AudioSourceType.PROCESS)}
-              disabled={!sourcesAreFullyDefined}
-              variant="outline"
-            >
-              <PlusIcon className="px-0" />
-              {getLocalePhrase(language, Phrase.AddApplicationButtonText)}
-            </Button>
-          )}
-          {/* Mac note: SCK desktop-audio + per-app capture disabled —
-              sync OSN IPC create hangs during SCK init. Users
-              install BlackHole and add it as a Microphone source
-              instead. Re-enable once we have an async create path. */}
+          <Button
+            onClick={() => addSource(AudioSourceType.PROCESS)}
+            disabled={!sourcesAreFullyDefined}
+            variant="outline"
+          >
+            <PlusIcon className="px-0" />
+            {getLocalePhrase(language, Phrase.AddApplicationButtonText)}
+          </Button>
         </div>
       </div>
     );
