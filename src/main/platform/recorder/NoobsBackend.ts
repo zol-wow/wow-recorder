@@ -1,6 +1,7 @@
 import noobs from 'noobs';
 import { ESupportedEncoders } from 'main/obsEnums';
 import type {
+  FileExtension,
   ObsData,
   ObsProperty,
   SceneItemPosition,
@@ -34,7 +35,6 @@ export default class NoobsBackend implements IRecorderBackend {
       ESupportedEncoders.QSV_H264,
       ESupportedEncoders.QSV_AV1,
     ],
-    supportsReplayBuffer: true,
   };
 
   // Lifecycle
@@ -85,7 +85,7 @@ export default class NoobsBackend implements IRecorderBackend {
   }
 
   // Recording output
-  setRecordingCfg(outputPath: string, container: string): void {
+  setRecordingCfg(outputPath: string, container: FileExtension): void {
     noobs.SetRecordingCfg(outputPath, container);
   }
   setVideoEncoder(encoder: string, settings: ObsData): void {
