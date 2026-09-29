@@ -196,18 +196,18 @@ const RecorderPreview = (props: {
     const display = await ipc.getDisplayInfo();
     setPreviewInfo(display);
     // C3 diagnostic: log preview vs canvas + box numbers each refresh.
-    // eslint-disable-next-line no-console
+
     console.info('[RecorderPreview] displayInfo', display);
 
     if (config.chatOverlayEnabled) {
       const pos = await ipc.getSourcePosition(SceneItem.OVERLAY);
-      // eslint-disable-next-line no-console
+
       console.info('[RecorderPreview] overlay pos', pos);
       setOverlayBoxDimensions(pos);
     }
 
     const pos = await ipc.getSourcePosition(SceneItem.GAME);
-    // eslint-disable-next-line no-console
+
     console.info('[RecorderPreview] game pos', pos);
     setGameBoxDimensions(pos);
   };
@@ -256,9 +256,7 @@ const RecorderPreview = (props: {
     // to main, sf ratio computed in CSS units). Skip DPR division.
     // Windows: physical-px throughout, divide by DPR for CSS render.
     const zoomFactor =
-      window.platformInfo?.platform === 'darwin'
-        ? 1
-        : window.devicePixelRatio;
+      window.platformInfo?.platform === 'darwin' ? 1 : window.devicePixelRatio;
 
     const fn =
       src === SceneItem.OVERLAY
@@ -308,9 +306,7 @@ const RecorderPreview = (props: {
     // to main, sf ratio computed in CSS units). Skip DPR division.
     // Windows: physical-px throughout, divide by DPR for CSS render.
     const zoomFactor =
-      window.platformInfo?.platform === 'darwin'
-        ? 1
-        : window.devicePixelRatio;
+      window.platformInfo?.platform === 'darwin' ? 1 : window.devicePixelRatio;
 
     const fn =
       src === SceneItem.OVERLAY
@@ -452,9 +448,7 @@ const RecorderPreview = (props: {
     // to main, sf ratio computed in CSS units). Skip DPR division.
     // Windows: physical-px throughout, divide by DPR for CSS render.
     const zoomFactor =
-      window.platformInfo?.platform === 'darwin'
-        ? 1
-        : window.devicePixelRatio;
+      window.platformInfo?.platform === 'darwin' ? 1 : window.devicePixelRatio;
     position.left = position.left / zoomFactor;
     position.top = position.top / zoomFactor;
 
@@ -501,7 +495,7 @@ const RecorderPreview = (props: {
   // through; render React drag boxes on top, same as Windows. The
   // outer wrapper keeps an opaque bg so the rest of the app chrome
   // doesn't go transparent.
-  // Win: opaque bg-black wrapper, OSN draws into a separate child
+  // Win: opaque bg-black wrapper, noobs draws into a separate child
   // window underneath the BrowserWindow.
   // Mac: child NSWindow renders OBS canvas above BrowserWindow,
   // mouse-transparent. Clicks fall through to this transparent

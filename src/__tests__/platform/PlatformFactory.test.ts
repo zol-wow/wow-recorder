@@ -68,11 +68,12 @@ describe('platform factory — darwin dispatch', () => {
     Object.defineProperty(process, 'platform', { value: 'darwin' });
   });
 
-  it('returns OsnBackend on darwin', () => {
+  it('returns MacNoobsBackend on darwin', () => {
     jest.resetModules();
     const { getRecorderBackend } = require('main/platform');
-    const OsnBackend = require('main/platform/recorder/OsnBackend').default;
-    expect(getRecorderBackend()).toBeInstanceOf(OsnBackend);
+    const MacNoobsBackend =
+      require('main/platform/recorder/MacNoobsBackend').default;
+    expect(getRecorderBackend()).toBeInstanceOf(MacNoobsBackend);
   });
 
   it('returns MacPgrepPoller on darwin', () => {
