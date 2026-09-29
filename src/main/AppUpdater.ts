@@ -34,8 +34,11 @@ export default class AppUpdater {
   }
 
   private periodicallyCheckUpdate() {
-    // Check GitHub to see if any new versions are available.
-    autoUpdater.checkForUpdates();
+    // Check GitHub to see if any new versions are available. This fails
+    // when there's no release for this platform, which is fine.
+    autoUpdater.checkForUpdates().catch((error) => {
+      console.warn('[AutoUpdater] Update check failed', String(error));
+    });
 
     // Schedule the next check.
     setTimeout(
