@@ -4,6 +4,9 @@ import icon from '../../assets/icon.png';
 
 const ipc = window.electron.ipcRenderer;
 
+// macOS draws its own traffic light buttons in the title bar.
+const isMac = window.platformInfo?.platform === 'darwin';
+
 export default function RendererTitleBar() {
   const clickedHide = () => {
     ipc.sendMessage('window', ['minimize']);
@@ -48,21 +51,23 @@ export default function RendererTitleBar() {
       <div className="text-popover-foreground font-semibold text-sm font-sans">
         Warcraft Recorder
       </div>
-      <div id="title-bar-btns" className="ml-auto absolute right-0 top-0">
-        <TitleBarButton id="min-btn" onClick={clickedHide}>
-          🗕
-        </TitleBarButton>
-        <TitleBarButton id="max-btn" onClick={clickedResize}>
-          🗗
-        </TitleBarButton>
-        <TitleBarButton
-          id="close-btn"
-          className="hover:bg-destructive"
-          onClick={clickedQuit}
-        >
-          ✖
-        </TitleBarButton>
-      </div>
+      {!isMac && (
+        <div id="title-bar-btns" className="ml-auto absolute right-0 top-0">
+          <TitleBarButton id="min-btn" onClick={clickedHide}>
+            🗕
+          </TitleBarButton>
+          <TitleBarButton id="max-btn" onClick={clickedResize}>
+            🗗
+          </TitleBarButton>
+          <TitleBarButton
+            id="close-btn"
+            className="hover:bg-destructive"
+            onClick={clickedQuit}
+          >
+            ✖
+          </TitleBarButton>
+        </div>
+      )}
     </div>
   );
 }
