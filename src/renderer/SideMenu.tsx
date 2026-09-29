@@ -430,7 +430,13 @@ const SideMenu = (props: IProps) => {
   const raidsIcon = <FontAwesomeIcon icon={faDragon} size="lg" />;
 
   return (
-    <div className="flex flex-col h-full bg-background w-[250px] shrink-0 px-4 items-center pt-4 pb-2">
+    <div
+      className={cn(
+        'flex flex-col h-full bg-background w-[250px] shrink-0 px-4 items-center pb-2',
+        // Leave room for the macOS traffic light buttons.
+        window.platformInfo?.platform === 'darwin' ? 'pt-10' : 'pt-4',
+      )}
+    >
       <ApplicationStatusCard
         recorderStatus={recorderStatus}
         activityStatus={activityStatus}
