@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Changed
 ### Added
+- macOS support for Apple Silicon, building on [PR 819](https://github.com/aza547/wow-recorder/pull/819) by Yuri Piratello. Recording uses the same replay buffer as Windows, so clips include the pre-roll.
 ### Fixed
+- Failed update checks are logged instead of causing an unhandled rejection.
 
 ## [7.13.3] - 2026-10-15
 ### Fixed
