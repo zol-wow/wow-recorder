@@ -25,7 +25,6 @@ const FALLBACK: RecorderCapabilities = {
     ESupportedEncoders.VT_H264,
     ESupportedEncoders.VT_HEVC,
   ],
-  supportsReplayBuffer: true,
 };
 
 /**
