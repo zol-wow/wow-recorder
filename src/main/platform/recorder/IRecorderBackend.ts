@@ -1,4 +1,5 @@
 import type {
+  FileExtension,
   ObsData,
   ObsProperty,
   SceneItemPosition,
@@ -8,9 +9,9 @@ import type {
 
 /**
  * Platform-neutral capture-mode identifiers. Each backend maps these
- * to its own native source IDs (Windows noobs: `game_capture` /
- * `window_capture` / `monitor_capture`; macOS OSN: `window_capture` /
- * `display_capture`, no game-capture equivalent).
+ * to its own native source IDs (Windows: `game_capture` /
+ * `window_capture` / `monitor_capture`; macOS: `screen_capture`, no
+ * game-capture equivalent).
  */
 export enum CaptureModeCapability {
   GAME = 'GAME',
@@ -27,8 +28,6 @@ export interface RecorderCapabilities {
   captureModes: CaptureModeCapability[];
   /** Encoder ids (ESupportedEncoders values) this backend exposes. */
   encoders: string[];
-  /** Whether libobs replay buffer is supported. */
-  supportsReplayBuffer: boolean;
 }
 
 export type SignalCallback = (signal: Signal) => void;
@@ -49,8 +48,7 @@ export interface BackendInitOptions {
 }
 
 /**
- * Abstract recorder backend. Windows implementation wraps `noobs`;
- * macOS implementation wraps `obs-studio-node` (added in a later plan).
+ * Abstract recorder backend. Both implementations wrap `noobs`.
  * Method shapes mirror the underlying `noobs` surface to keep the
  * Windows pass-through trivial.
  */
@@ -81,7 +79,7 @@ export interface IRecorderBackend {
   disablePreview(): void;
 
   // Recording output
-  setRecordingCfg(outputPath: string, container: string): void;
+  setRecordingCfg(outputPath: string, container: FileExtension): void;
   setVideoEncoder(encoder: string, settings: ObsData): void;
   listVideoEncoders(): string[];
 

@@ -1,14 +1,10 @@
 // Native module via raw require — bypass esModuleInterop's
-// __importDefault wrapper that ts-loader otherwise injects, which
-// turns `noobs.Init` into `noobs.default.Init` at runtime and breaks
-// against the actual `module.exports = nativeModule` shape noobs
-// ships. The same-shape Win NoobsBackend works because its noobs
-// build happens to set `__esModule = true` on the exported object;
-// our Mac fork doesn't.
-// eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
-const noobs: any = require('noobs');
+// __importDefault wrapper, which turns `noobs.Init` into
+// `noobs.default.Init` at runtime.
+const noobs: typeof import('noobs').default = require('noobs');
 import { ESupportedEncoders } from 'main/obsEnums';
 import type {
+  FileExtension,
   ObsData,
   ObsProperty,
   SceneItemPosition,
@@ -26,11 +22,9 @@ import type {
  * sit on top of the same `noobs` native module — but advertises the
  * Mac-specific capture mode + encoder set.
  *
- * Built against our own noobs fork's Phase 5 vendored libobs, so no
- * Streamlabs OSN dependency at runtime. Phase 1-4 of the noobs port
- * cover the Mac differences inside the C++ (NSView preview, .plugin
- * bundle paths, CoreAudio source ids, VideoToolbox encoders, etc.) —
- * the JS side just calls the same exports the Windows path does.
+ * The Mac differences inside noobs (NSView preview, .plugin bundle
+ * paths, CoreAudio source ids, VideoToolbox encoders, etc.) live in
+ * the C++; the JS side calls the same exports the Windows path does.
  *
  * Game capture is unavailable on macOS (no DirectX/Vulkan hook
  * injection equivalent), so only WINDOW + MONITOR are listed.
@@ -38,24 +32,12 @@ import type {
  */
 export default class MacNoobsBackend implements IRecorderBackend {
   public readonly capabilities: RecorderCapabilities = {
-    captureModes: [
-      CaptureModeCapability.WINDOW,
-      CaptureModeCapability.MONITOR,
-    ],
+    captureModes: [CaptureModeCapability.WINDOW, CaptureModeCapability.MONITOR],
     encoders: [
       ESupportedEncoders.OBS_X264,
       ESupportedEncoders.VT_H264,
       ESupportedEncoders.VT_HEVC,
     ],
-    // Vanilla libobs replay_buffer output has only `save` +
-    // `get_last_replay` procs. The `convert` proc that turns the
-    // buffer into a continuous recording is a Streamlabs OSN fork
-    // extension, missing from upstream. Until we re-implement it
-    // (run replay_buffer + ffmpeg_muxer in parallel and concat at
-    // activity end), Mac records via plain ffmpeg_muxer with no
-    // pre-roll. Activity captures start at the moment the activity
-    // begins instead of `offset` seconds before.
-    supportsReplayBuffer: false,
   };
 
   // Lifecycle
@@ -106,7 +88,7 @@ export default class MacNoobsBackend implements IRecorderBackend {
   }
 
   // Recording output
-  setRecordingCfg(outputPath: string, container: string): void {
+  setRecordingCfg(outputPath: string, container: FileExtension): void {
     noobs.SetRecordingCfg(outputPath, container);
   }
   setVideoEncoder(encoder: string, settings: ObsData): void {
@@ -145,11 +127,19 @@ export default class MacNoobsBackend implements IRecorderBackend {
   private mapEncoderId(encoder: string): string {
     if (encoder === 'VT_H264') {
       const native = noobs.ListVideoEncoders();
-      return MacNoobsBackend.VT_H264_NATIVE.find((id: string) => native.includes(id)) ?? encoder;
+      return (
+        MacNoobsBackend.VT_H264_NATIVE.find((id: string) =>
+          native.includes(id),
+        ) ?? encoder
+      );
     }
     if (encoder === 'VT_HEVC') {
       const native = noobs.ListVideoEncoders();
-      return MacNoobsBackend.VT_HEVC_NATIVE.find((id: string) => native.includes(id)) ?? encoder;
+      return (
+        MacNoobsBackend.VT_HEVC_NATIVE.find((id: string) =>
+          native.includes(id),
+        ) ?? encoder
+      );
     }
     return encoder;
   }
@@ -217,10 +207,6 @@ export default class MacNoobsBackend implements IRecorderBackend {
     noobs.SetSourceAudioTracks(id, tracks);
   }
 
-  // Editor selection — was used by the OSN path's draw-UI selection
-  // rectangle. Vanilla libobs doesn't expose that today; leave as
-  // no-ops here too. Future: render selection in our own draw
-  // callback inside obs_interface_mac.mm.
   // libobs's `selected` flag drives standard OBS UI selection
   // rendering. Our draw_callback already paints orange outlines +
   // corner handles for every scene item via setDrawSourceOutline,
