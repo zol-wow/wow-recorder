@@ -198,7 +198,7 @@ const createWindow = async () => {
     icon: getAssetPath('./icon/small-icon.png'),
     frame: isMac, // native traffic-light chrome on macOS, borderless on Windows
     titleBarStyle: isMac ? 'hiddenInset' : undefined,
-    trafficLightPosition: isMac ? { x: 12, y: 14 } : undefined,
+    trafficLightPosition: isMac ? { x: 12, y: 10 } : undefined,
     title: `Warcraft Recorder v${appVersion}`,
     webPreferences: {
       sandbox: true, // Good security practice.
