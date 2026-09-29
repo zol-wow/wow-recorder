@@ -580,6 +580,14 @@ enum Phrase {
   LatestCombatLogFileDayOld,
   LatestCombatLogFileDaysOld,
   LatestCombatLogFileLessThanADayOld,
+  PermissionsRequiredTitle,
+  PermissionsScreenRecordingText,
+  PermissionsScreenRecordingLabel,
+  PermissionsAccessibilityLabel,
+  PermissionsRefreshText,
+  PermissionsAccessibilityMissingText,
+  PermissionGranted,
+  PermissionOpenSettings,
 }
 
 enum Language {

@@ -582,6 +582,14 @@ const ENGLISH: Translations = {
   [Phrase.LatestCombatLogFileDayOld]: '1 day old',
   [Phrase.LatestCombatLogFileDaysOld]: 'days old',
   [Phrase.LatestCombatLogFileLessThanADayOld]: 'less than a day old',
+  [Phrase.PermissionsRequiredTitle]: 'Permissions required',
+  [Phrase.PermissionsScreenRecordingText]: 'Warcraft Recorder needs Screen Recording permission to capture your gameplay. Enable it for Warcraft Recorder in System Settings.',
+  [Phrase.PermissionsScreenRecordingLabel]: 'Screen Recording (required)',
+  [Phrase.PermissionsAccessibilityLabel]: 'Accessibility (for global hotkeys)',
+  [Phrase.PermissionsRefreshText]: 'After changing a permission in System Settings, return to this window. It updates automatically.',
+  [Phrase.PermissionsAccessibilityMissingText]: 'Without Accessibility, push-to-talk and other global hotkeys are disabled. You can grant it later.',
+  [Phrase.PermissionGranted]: 'Granted',
+  [Phrase.PermissionOpenSettings]: 'Open Settings',
 };
 
 export default ENGLISH;

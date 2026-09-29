@@ -497,7 +497,9 @@ const WarcraftRecorder = () => {
         <Toaster />
         <KillVideoProgress language={appState.language} />
         <QueryClientProvider client={queryClient}>
-          {window.platformInfo?.platform === 'darwin' && <PermissionsWizard />}
+          {window.platformInfo?.platform === 'darwin' && (
+            <PermissionsWizard language={appState.language} />
+          )}
           <TooltipProvider>
             <RendererTitleBar />
             <div className="flex flex-row items-center h-full w-full font-sans">

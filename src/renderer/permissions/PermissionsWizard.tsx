@@ -1,11 +1,20 @@
+import { Language, Phrase } from 'localisation/phrases';
+import { getLocalePhrase } from 'localisation/translations';
+import { Button } from '../components/Button/Button';
+import { cn } from '../components/utils';
 import { usePermissionsStatus } from './usePermissionsStatus';
+
+interface IProps {
+  language: Language;
+}
 
 /**
  * First-run mac permissions wizard. Blocks the app UI until Screen
- * Recording is granted. Microphone and Accessibility are surfaced as
- * non-blocking warnings — the user can proceed without them.
+ * Recording is granted. Accessibility is surfaced as a non-blocking
+ * warning — the user can proceed without it.
  */
-export default function PermissionsWizard() {
+export default function PermissionsWizard(props: IProps) {
+  const { language } = props;
   const { data: status } = usePermissionsStatus();
   const screenGranted = status.screen === 'granted';
   const accessibilityGranted = status.accessibility === 'granted';
@@ -13,56 +22,45 @@ export default function PermissionsWizard() {
   if (screenGranted) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        background: 'rgba(17, 24, 39, 0.95)',
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'system-ui, sans-serif',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 540,
-          padding: 32,
-          background: 'rgba(31, 41, 55, 1)',
-          borderRadius: 8,
-          textAlign: 'center',
-        }}
-      >
-        <h1 style={{ fontSize: 24, marginBottom: 16 }}>Permissions required</h1>
-        <p style={{ marginBottom: 24, lineHeight: 1.5 }}>
-          Warcraft Recorder needs <strong>Screen Recording</strong> permission
-          to capture your gameplay. macOS gates this behind a system setting you
-          must enable manually.
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/95 font-sans text-foreground">
+      <div className="max-w-[540px] rounded-lg bg-card p-8 text-center">
+        <h1 className="mb-4 text-2xl font-semibold">
+          {getLocalePhrase(language, Phrase.PermissionsRequiredTitle)}
+        </h1>
+        <p className="mb-6 leading-relaxed">
+          {getLocalePhrase(language, Phrase.PermissionsScreenRecordingText)}
         </p>
 
         <PermissionRow
-          label="Screen Recording (required)"
+          language={language}
+          label={getLocalePhrase(
+            language,
+            Phrase.PermissionsScreenRecordingLabel,
+          )}
           status={status.screen}
           onOpen={() => window.permissions.openSettingsFor('screen')}
         />
         <PermissionRow
-          label="Accessibility (for global hotkeys)"
+          language={language}
+          label={getLocalePhrase(
+            language,
+            Phrase.PermissionsAccessibilityLabel,
+          )}
           status={status.accessibility}
           optional
           onOpen={() => window.permissions.openSettingsFor('accessibility')}
         />
 
-        <p style={{ marginTop: 24, fontSize: 13, opacity: 0.8 }}>
-          After toggling a permission in System Settings, return to this window
-          — the status will refresh automatically.
+        <p className="mt-6 text-sm opacity-80">
+          {getLocalePhrase(language, Phrase.PermissionsRefreshText)}
         </p>
 
         {!accessibilityGranted && (
-          <p style={{ marginTop: 12, fontSize: 12, opacity: 0.7 }}>
-            Without Accessibility, push-to-talk and other global hotkeys are
-            disabled. You can grant it later.
+          <p className="mt-3 text-xs opacity-70">
+            {getLocalePhrase(
+              language,
+              Phrase.PermissionsAccessibilityMissingText,
+            )}
           </p>
         )}
       </div>
@@ -71,46 +69,35 @@ export default function PermissionsWizard() {
 }
 
 function PermissionRow({
+  language,
   label,
   status,
   optional,
   onOpen,
 }: {
+  language: Language;
   label: string;
   status: string;
   optional?: boolean;
   onOpen: () => void;
 }) {
   const granted = status === 'granted';
-  const bg = granted ? '#065f46' : optional ? '#78350f' : '#991b1b';
+
   return (
     <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        background: bg,
-        padding: '12px 16px',
-        borderRadius: 4,
-        marginBottom: 8,
-      }}
+      className={cn(
+        'mb-2 flex items-center justify-between rounded-md border px-4 py-3',
+        granted && 'border-success-border',
+        !granted && optional && 'border-warning-border',
+        !granted && !optional && 'border-error-border',
+      )}
     >
       <span>{label}</span>
-      <button
-        type="button"
-        onClick={onOpen}
-        style={{
-          background: 'white',
-          color: 'black',
-          padding: '6px 12px',
-          borderRadius: 4,
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: 13,
-        }}
-      >
-        {granted ? 'Granted ✓' : 'Open Settings'}
-      </button>
+      <Button size="sm" variant="secondary" onClick={onOpen} disabled={granted}>
+        {granted
+          ? `${getLocalePhrase(language, Phrase.PermissionGranted)} ✓`
+          : getLocalePhrase(language, Phrase.PermissionOpenSettings)}
+      </Button>
     </div>
   );
 }

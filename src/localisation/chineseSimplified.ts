@@ -583,6 +583,14 @@ const CHINESE_SIMPLIFIED: Translations = {
   [Phrase.LatestCombatLogFileDayOld]: '1天前',
   [Phrase.LatestCombatLogFileDaysOld]: '天前',
   [Phrase.LatestCombatLogFileLessThanADayOld]: '不到一天前',
+  [Phrase.PermissionsRequiredTitle]: '需要权限',
+  [Phrase.PermissionsScreenRecordingText]: 'Warcraft Recorder 需要屏幕录制权限才能录制你的游戏画面。请在系统设置中为 Warcraft Recorder 启用该权限。',
+  [Phrase.PermissionsScreenRecordingLabel]: '屏幕录制（必需）',
+  [Phrase.PermissionsAccessibilityLabel]: '辅助功能（用于全局快捷键）',
+  [Phrase.PermissionsRefreshText]: '在系统设置中更改权限后，请返回此窗口。它会自动更新。',
+  [Phrase.PermissionsAccessibilityMissingText]: '没有辅助功能权限时，按键通话和其他全局快捷键将被禁用。你可以稍后再授予该权限。',
+  [Phrase.PermissionGranted]: '已授予',
+  [Phrase.PermissionOpenSettings]: '打开设置',
 };
 
 export default CHINESE_SIMPLIFIED;
