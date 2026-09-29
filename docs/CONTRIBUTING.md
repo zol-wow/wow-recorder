@@ -1,6 +1,6 @@
 # Contributing
 
-The below steps describe development on Windows. The app is currently not supported on other operating systems. 
+The below steps describe development on Windows. For macOS (Apple Silicon), see the [macOS section](#macos) at the end.
 
 ## Architecture
 Once I drew the structure of the application in Excalidraw. You can see that below. It's a rough overview of the key parts and may be a useful overview for any interested developers.
@@ -88,3 +88,16 @@ If we just build a .exe and release it Windows will warn it may be dangerous. Co
     1. Detection name - "WarcraftRecorder.Setup.2.0.1.exe"
     1. "Additional information" - whatever, I'm sure no one will read it. 
 1. This isn't instant but seems to get resolved within 24 hours, that seems good enough. 
+
+## macOS
+macOS support needs Apple Silicon and macOS 13 or later. It uses the same `noobs` library, built for macOS.
+
+Until a noobs release with macOS binaries is published, build it yourself:
+
+1. In a noobs checkout next to this repo, run `./scripts/build-libobs-mac.sh`, then `npm run build` and `npm pack`.
+1. Here, run `npm install --ignore-scripts`. The usual postinstall would try to build the published, Windows-only noobs.
+1. In `release/app`, run `npm install --no-save <path to noobs tarball>`.
+1. Run `npm start`. Grant Screen Recording permission to your terminal when asked.
+1. To package, run `npm run package`. Set `CSC_NAME` to a signing identity to sign the app, otherwise the Screen Recording permission resets on every rebuild.
+
+The integration tests run on macOS too. Point them at your folders with `WCR_RETAIL_LOG_PATH` and `WCR_STORAGE_PATH`.
