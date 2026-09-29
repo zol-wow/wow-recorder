@@ -144,7 +144,9 @@ const SceneEditor: React.FC<IProps> = (props: IProps) => {
           <div className="flex ml-auto items-center justify-center gap-x-4">
             {renderResetGameButton()}
             {config.chatOverlayEnabled && renderResetOverlayButton()}
-            {renderToggleSnappingSwitch()}
+            {/* The macOS scene editor doesn't snap yet. */}
+            {window.platformInfo?.platform !== 'darwin' &&
+              renderToggleSnappingSwitch()}
             {devMode && renderShowPreviewSwitch()}
           </div>
         </TabsList>
