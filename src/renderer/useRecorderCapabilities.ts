@@ -1,27 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import type { RecorderCapabilities } from 'main/platform/recorder/IRecorderBackend';
 import { CaptureModeCapability } from 'main/platform/recorder/IRecorderBackend';
-import { ESupportedEncoders } from 'main/obsEnums';
 
-// Superset of all encoders we may surface across platforms — the
-// real backend filters down to its supported set. Shown while the IPC
-// resolves so the dropdown isn't briefly missing options.
+// Superset of all capture modes across platforms. Shown while the IPC
+// resolves so the options aren't briefly missing.
 const FALLBACK: RecorderCapabilities = {
   captureModes: [
     CaptureModeCapability.GAME,
     CaptureModeCapability.WINDOW,
     CaptureModeCapability.MONITOR,
-  ],
-  encoders: [
-    ESupportedEncoders.OBS_X264,
-    ESupportedEncoders.AMD_H264,
-    ESupportedEncoders.AMD_AV1,
-    ESupportedEncoders.NVENC_H264,
-    ESupportedEncoders.NVENC_AV1,
-    ESupportedEncoders.QSV_H264,
-    ESupportedEncoders.QSV_AV1,
-    ESupportedEncoders.VT_H264,
-    ESupportedEncoders.VT_HEVC,
   ],
 };
 
