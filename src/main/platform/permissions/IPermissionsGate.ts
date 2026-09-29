@@ -27,4 +27,6 @@ export interface IPermissionsGate {
   canUseGlobalHotkeys(): boolean;
   /** Open the OS Settings pane for the given category (no-op on platforms without one). */
   openSettingsFor(key: PermissionKey): void;
+  /** Ask the OS for screen recording permission (no-op where not needed). */
+  requestScreenRecording(): void;
 }
