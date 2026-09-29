@@ -777,7 +777,7 @@ export default class VideoProcessQueue {
           resolve(false);
           return;
         }
-        const v = data.streams?.find((s: any) => s.codec_type === 'video');
+        const v = data.streams?.find((s) => s.codec_type === 'video');
         resolve(v?.codec_name === 'hevc');
       });
     });
