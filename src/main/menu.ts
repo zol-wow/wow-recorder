@@ -1,6 +1,8 @@
 import { app, Menu, MenuItemConstructorOptions } from 'electron';
 
 export default class MenuBuilder {
+  constructor() {}
+
   buildMenu(): Menu {
     const template =
       process.platform === 'darwin'
@@ -31,6 +33,13 @@ export default class MenuBuilder {
         enabled: true,
       },
       {
+        label: 'Zoom In Fix',
+        accelerator: 'CommandOrControl+=',
+        role: 'zoomIn',
+        visible: false,
+        enabled: true,
+      },
+      {
         label: 'Zoom Out',
         accelerator: 'CommandOrControl+-',
         role: 'zoomOut',
@@ -38,14 +47,13 @@ export default class MenuBuilder {
         enabled: true,
       },
       {
-        label: 'Reset Zoom',
+        label: 'Zoom Out',
         accelerator: 'CommandOrControl+0',
         role: 'resetZoom',
         visible: false,
         enabled: true,
       },
     ];
-
     return [
       { label: 'View', submenu: developSubmenu, visible: false, enabled: true },
     ];
