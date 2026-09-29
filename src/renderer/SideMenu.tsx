@@ -15,6 +15,7 @@ import {
   Swords,
 } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { cn } from './components/utils';
 import { faDungeon, faDragon } from '@fortawesome/free-solid-svg-icons';
 import {
   ActivityStatus,
@@ -314,7 +315,13 @@ const SideMenu = (props: IProps) => {
   const raidsIcon = <FontAwesomeIcon icon={faDragon} size="lg" />;
 
   return (
-    <div className="flex flex-col h-full bg-background w-80 px-4 items-center pt-4 pb-2">
+    <div
+      className={cn(
+        'flex flex-col h-full bg-background w-80 px-4 items-center pb-2',
+        // Leave room for the macOS traffic light buttons.
+        window.platformInfo?.platform === 'darwin' ? 'pt-10' : 'pt-4',
+      )}
+    >
       <ApplicationStatusCard
         recorderStatus={recorderStatus}
         activityStatus={activityStatus}
