@@ -101,8 +101,8 @@ export default class Recorder extends EventEmitter {
   private cfg = ConfigService.getInstance();
 
   /**
-   * Platform recorder backend — Windows wraps `noobs`, macOS wraps
-   * `obs-studio-node` (added in a later phase).
+   * Platform recorder backend. Both wrap `noobs`, the macOS one maps
+   * Windows source types and encoders to their Mac equivalents.
    */
   private backend: IRecorderBackend = getRecorderBackend();
 
@@ -649,9 +649,8 @@ export default class Recorder extends EventEmitter {
 
     if (!this.obsInitialized) {
       // Hit on macOS when Screen Recording permission was denied at boot
-      // and the user changes settings via the UI before the perm-poll has
-      // had a chance to init OSN. resetVideoContext on an uninitialised
-      // OsnBackend hangs the main process; bail loudly instead.
+      // and the user changes settings via the UI before the permission
+      // poll has initialized OBS.
       console.warn(
         '[Recorder] configureBase called before OBS was initialised — skipping',
       );
@@ -680,11 +679,7 @@ export default class Recorder extends EventEmitter {
     // also it's been 1024MB for years so keep that if defaults not changed.
     const replayBufferMaxSizeMb = replayBufferSeconds > 60 ? 1024 * 10 : 1024;
 
-    this.backend.setBuffering(
-      this.backend.capabilities.supportsReplayBuffer,
-      replayBufferSeconds,
-      replayBufferMaxSizeMb,
-    );
+    this.backend.setBuffering(true, replayBufferSeconds, replayBufferMaxSizeMb);
 
     const { canvasHeight, canvasWidth } = canvas;
     const changedResolution = canvasHeight !== height || canvasWidth !== width;
@@ -800,7 +795,9 @@ export default class Recorder extends EventEmitter {
     const caps = this.backend.capabilities;
     const has = (m: CaptureModeCapability) => caps.captureModes.includes(m);
     if (mode === 'game_capture' && !has(CaptureModeCapability.GAME)) {
-      console.warn('[Recorder] game_capture unsupported on this backend, falling back to window_capture');
+      console.warn(
+        '[Recorder] game_capture unsupported on this backend, falling back to window_capture',
+      );
       mode = 'window_capture';
       this.cfg.set('obsCaptureMode', mode);
     }
@@ -1189,14 +1186,6 @@ export default class Recorder extends EventEmitter {
       return;
     }
 
-    if (!this.backend.capabilities.supportsReplayBuffer) {
-      // No replay buffer on this backend (Mac/vanilla libobs).
-      // Skip the pre-roll buffer entirely; recording will start
-      // when an activity calls convertObsBuffer().
-      console.info('[Recorder] Buffering disabled, idle until activity');
-      return;
-    }
-
     this.startQueue.empty();
     this.backend.startBuffer();
 
@@ -1217,20 +1206,6 @@ export default class Recorder extends EventEmitter {
     if (!this.obsInitialized) {
       console.error('[Recorder] OBS not initialized');
       throw new Error('OBS not initialized');
-    }
-
-    if (!this.backend.capabilities.supportsReplayBuffer) {
-      // No buffer to convert. Start a fresh ffmpeg_muxer run from
-      // now; pre-roll `offset` is lost. Wait for the start signal
-      // so obsState transitions to Recording before we return.
-      this.startQueue.empty();
-      this.backend.startRecording(0);
-      await Promise.race([
-        this.startQueue.shift(),
-        getPromiseBomb(30, 'Failed to start recording'),
-      ]);
-      this.startQueue.empty();
-      return;
     }
 
     if (this.obsState !== ERecordingState.Recording) {
@@ -1388,8 +1363,7 @@ export default class Recorder extends EventEmitter {
       // Recover scaleX from the committed bbox: width here is already
       // post-scale (sourceWidth * scaleX), so divide back out.
       const pos = this.backend.getSourcePos(name);
-      const scaleX =
-        pos.width > 0 ? width / pos.width : pos.scaleX;
+      const scaleX = pos.width > 0 ? width / pos.width : pos.scaleX;
       void height; // scaleY assumed equal to scaleX (uniform aspect lock).
       this.commitEditorPosition(name, x, y, scaleX);
     });
@@ -1812,8 +1786,7 @@ export default class Recorder extends EventEmitter {
    */
   private static windowMatch(item: { name: string; value: string | number }) {
     if (process.platform === 'darwin') {
-      // OSN's mac_screen_capture window:list formats names as
-      // `[<AppName>] <WindowTitle>`. Match by app-name prefix.
+      // mac-capture lists windows as `[<AppName>] <WindowTitle>`.
       const n = item.name;
       return (
         n.startsWith('[World of Warcraft]') ||
@@ -2091,7 +2064,9 @@ export default class Recorder extends EventEmitter {
     scaleX: number,
   ): void {
     const item =
-      sourceName === VideoSourceName.OVERLAY ? SceneItem.OVERLAY : SceneItem.GAME;
+      sourceName === VideoSourceName.OVERLAY
+        ? SceneItem.OVERLAY
+        : SceneItem.GAME;
     this.saveSourcePosition(item, x, y, scaleX);
   }
 

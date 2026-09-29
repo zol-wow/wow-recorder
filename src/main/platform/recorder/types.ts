@@ -5,6 +5,7 @@
  * platform without changes to consumers.
  */
 export type {
+  FileExtension,
   ObsData,
   ObsListItem,
   ObsProperty,
