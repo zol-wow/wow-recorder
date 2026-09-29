@@ -30,6 +30,13 @@ import type {
  * injection equivalent), so only WINDOW + MONITOR are listed.
  * NVENC / QSV / AMD encoders are similarly Win-only.
  */
+const OUTPUT_AUDIO = 'wasapi_output_capture';
+const PROCESS_AUDIO = 'wasapi_process_output_capture';
+
+// ScreenCaptureAudioStreamType in mac-capture.
+const SCK_DESKTOP_AUDIO = 0;
+const SCK_APPLICATION_AUDIO = 1;
+
 export default class MacNoobsBackend implements IRecorderBackend {
   public readonly capabilities: RecorderCapabilities = {
     captureModes: [CaptureModeCapability.WINDOW, CaptureModeCapability.MONITOR],
@@ -145,39 +152,70 @@ export default class MacNoobsBackend implements IRecorderBackend {
   }
 
   // Sources
+
+  /**
+   * The Windows source type each source was created as. Callers keep
+   * using Windows types and settings; we translate at this boundary.
+   */
+  private sourceTypes = new Map<string, string>();
+
   createSource(id: string, type: string): string {
-    return noobs.CreateSource(id, this.mapSourceType(type));
+    const name = noobs.CreateSource(id, MacNoobsBackend.mapSourceType(type));
+    this.sourceTypes.set(name, type);
+
+    if (type === OUTPUT_AUDIO || type === PROCESS_AUDIO) {
+      const settings = noobs.GetSourceSettings(name);
+      noobs.SetSourceSettings(name, this.toMacSettings(name, settings));
+    }
+
+    return name;
   }
 
-  // Win source ids → Mac equivalents. Shared callers (Recorder,
-  // types.ts) keep the Win strings; we translate at the boundary.
-  // - wasapi_* → coreaudio_* (mac-capture audio)
-  // - monitor_capture → screen_capture (ScreenCaptureKit)
-  // - game_capture has no Mac equivalent (no DX/Vulkan hook); we
-  //   already filter it out via capabilities, but guard anyway.
-  // wasapi_process_output_capture has no Mac equivalent — fall
-  // back to system audio out.
-  private mapSourceType(type: string): string {
+  // Windows source ids → Mac equivalents.
+  // - Desktop and per-app audio both use ScreenCaptureKit, which needs
+  //   no loopback driver on macOS 13+.
+  // - Monitor and window capture both use ScreenCaptureKit too, the
+  //   legacy mac-capture sources are deprecated.
+  // - game_capture has no Mac equivalent (no DX/Vulkan hook); it's
+  //   filtered out via capabilities.
+  private static mapSourceType(type: string): string {
     switch (type) {
-      case 'wasapi_output_capture':
-        // System loopback. CoreAudio has no built-in loopback;
-        // ScreenCaptureKit-based source ships with mac-capture and
-        // works without third-party drivers.
+      case OUTPUT_AUDIO:
+      case PROCESS_AUDIO:
         return 'sck_audio_capture';
       case 'wasapi_input_capture':
         return 'coreaudio_input_capture';
-      case 'wasapi_process_output_capture':
-        // Per-app capture also via SCK. type=2 + bundle id, set in
-        // Recorder.configureAudioSources.
-        return 'sck_audio_capture';
       case 'monitor_capture':
+      case 'window_capture':
         return 'screen_capture';
       default:
         return type;
     }
   }
+
+  /**
+   * Windows audio settings to ScreenCaptureKit ones. Desktop audio has
+   * no device to pick. Per-app audio targets a bundle id, which callers
+   * pass in the Windows `window` setting.
+   */
+  private toMacSettings(name: string, settings: ObsData): ObsData {
+    switch (this.sourceTypes.get(name)) {
+      case OUTPUT_AUDIO:
+        return { ...settings, type: SCK_DESKTOP_AUDIO };
+      case PROCESS_AUDIO:
+        return {
+          ...settings,
+          type: SCK_APPLICATION_AUDIO,
+          application: settings.window ?? settings.application ?? '',
+        };
+      default:
+        return settings;
+    }
+  }
+
   deleteSource(id: string): void {
     noobs.DeleteSource(id);
+    this.sourceTypes.delete(id);
   }
   addSourceToScene(name: string): void {
     noobs.AddSourceToScene(name);
@@ -189,10 +227,34 @@ export default class MacNoobsBackend implements IRecorderBackend {
     return noobs.GetSourceSettings(id);
   }
   setSourceSettings(id: string, settings: ObsData): void {
-    noobs.SetSourceSettings(id, settings);
+    noobs.SetSourceSettings(id, this.toMacSettings(id, settings));
   }
   getSourceProperties(id: string): ObsProperty[] {
-    return noobs.GetSourceProperties(id);
+    const properties = noobs.GetSourceProperties(id);
+
+    switch (this.sourceTypes.get(id)) {
+      case OUTPUT_AUDIO:
+        // Present desktop audio as a single default device, like WASAPI.
+        return [
+          {
+            name: 'device_id',
+            description: 'Device',
+            type: 'list',
+            enabled: true,
+            visible: true,
+            combo_type: 'list',
+            combo_format: 'string',
+            items: [{ name: 'Default', value: 'default', disabled: false }],
+          },
+        ];
+      case PROCESS_AUDIO:
+        // The app list stands in for the Windows window list.
+        return properties.map((p) =>
+          p.name === 'application' ? { ...p, name: 'window' } : p,
+        );
+      default:
+        return properties;
+    }
   }
   getSourcePos(id: string): SceneItemPosition & SourceDimensions {
     return noobs.GetSourcePos(id);
