@@ -748,6 +748,9 @@ export default class Recorder extends EventEmitter {
       this.backend.deleteSource(this.captureSource);
       this.captureSource = undefined;
       this.captureMode = CaptureMode.NONE;
+
+      // The Mac scene editor may have the deleted source selected.
+      EditorService.getInstance().reset();
     }
 
     // Mac libobs has no game_capture (no DX/Vulkan hook). Fall back
