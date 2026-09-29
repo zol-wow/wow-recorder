@@ -340,7 +340,8 @@ const VideoBaseControls: FC<IProps> = (props: IProps) => {
 
     if (
       values.includes(ESupportedEncoders.AMD_H265) ||
-      values.includes(ESupportedEncoders.NVENC_H265)
+      values.includes(ESupportedEncoders.NVENC_H265) ||
+      values.includes(ESupportedEncoders.VT_HEVC)
     ) {
       // Include H265 description if it's available.
       tooltip += '\n\n';
@@ -412,6 +413,7 @@ const VideoBaseControls: FC<IProps> = (props: IProps) => {
       (config.obsRecEncoder === ESupportedEncoders.AMD_H265 ||
         config.obsRecEncoder === ESupportedEncoders.AMD_AV1 ||
         config.obsRecEncoder === ESupportedEncoders.NVENC_H265 ||
+        config.obsRecEncoder === ESupportedEncoders.VT_HEVC ||
         config.obsRecEncoder === ESupportedEncoders.NVENC_AV1 ||
         config.obsRecEncoder === ESupportedEncoders.QSV_AV1);
 
