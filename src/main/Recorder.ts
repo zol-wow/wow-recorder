@@ -903,31 +903,7 @@ export default class Recorder extends EventEmitter {
       console.info('[Recorder] Created audio source', name);
       const settings = this.backend.getSourceSettings(name);
 
-      // Mac OUTPUT and PROCESS both map to sck_audio_capture (see
-      // MacNoobsBackend.mapSourceType). Use SCK system-audio (type=0)
-      // for OUTPUT and for PROCESS without a chosen target. Bundle id
-      // = per-app capture (type=2). Window title = per-window
-      // (type=1). Works on macOS 13+ without third-party loopback
-      // drivers. CoreAudio has no system loopback so the previous
-      // device_id lookup path returned empty + threw.
-      const isMacSckAudio =
-        process.platform === 'darwin' &&
-        (src.type === AudioSourceType.PROCESS ||
-          src.type === AudioSourceType.OUTPUT);
-
-      if (isMacSckAudio) {
-        const dev = src.device ? String(src.device) : '';
-        if (dev === '' || dev === 'desktop' || dev === 'default') {
-          settings['type'] = 0; // System desktop audio
-        } else if (dev.includes('.')) {
-          settings['type'] = 2;
-          settings['application'] = dev;
-        } else {
-          settings['type'] = 1;
-          settings['window'] = dev;
-        }
-        this.backend.setSourceSettings(name, settings);
-      } else if (src.type === AudioSourceType.PROCESS && src.device) {
+      if (src.type === AudioSourceType.PROCESS && src.device) {
         settings['window'] = src.device;
         settings['priority'] = 2; // Executable matching
         this.backend.setSourceSettings(name, settings);
