@@ -52,6 +52,7 @@ console.info('[Main] In timezone:', tz, tzOffsetStr);
 
 let window: BrowserWindow | null = null;
 let tray: Tray | null = null;
+let quitting = false;
 const manager = new Manager();
 
 /**
@@ -70,7 +71,8 @@ if (firstTimeSetup) {
   // Things we want to do before we initialize OBS.
   console.info('[Main] Run first time setup actions');
   runFirstTimeSetupActionsNoObs();
-  cfg.set('firstTimeSetup', false); // This gets done again when we default the encoder.
+  // Cleared once OBS is initialized and the OBS setup actions have run too,
+  // which on macOS can be a later launch if Screen Recording isn't granted yet.
 }
 
 // It's a common problem that hardware acceleration causes rendering issues.
@@ -211,47 +213,59 @@ const createWindow = async () => {
   // Prevent Windows from opening the native window menu on draggable regions.
   window.on('system-context-menu', (event) => event.preventDefault());
 
+  // On macOS the native close button closes the window directly. Honour
+  // minimizeOnQuit like the title bar button does on Windows. Quitting the
+  // app (Cmd+Q, tray) still quits.
+  window.on('close', (event) => {
+    if (!isMac || quitting || !cfg.get<boolean>('minimizeOnQuit')) return;
+    console.info('[Main] Hiding main window');
+    event.preventDefault();
+    window?.webContents.send('pausePlayer');
+    window?.hide();
+  });
+
   // We need to do this AFTER creating the window as it's used by the preview.
   // On macOS, only init OBS and start the manager once Screen Recording is
   // granted. The PermissionsWizard walks the user through granting it; the
   // poll below then finishes init without requiring a relaunch.
-  const perms = getPermissionsGate();
-  const recordingReady = perms.canRecord();
-  if (recordingReady) {
+  const initializeRecorder = async () => {
     Recorder.getInstance().initializeObs();
     await manager.startup();
+
+    if (firstTimeSetup) {
+      console.info('[Main] Run first time setup actions');
+      runFirstTimeSetupActionsObs();
+      cfg.set('firstTimeSetup', false);
+    }
+  };
+
+  const perms = getPermissionsGate();
+
+  if (perms.canRecord()) {
+    await initializeRecorder();
   } else {
     console.warn(
       '[Main] Screen Recording permission missing — recorder disabled until granted',
     );
-    if (process.platform === 'darwin') {
-      const tccPoll = setInterval(async () => {
-        if (!perms.canRecord()) return;
-        clearInterval(tccPoll);
-        console.info(
-          '[Main] Screen Recording permission detected — initializing recorder',
-        );
-        try {
-          Recorder.getInstance().initializeObs();
-          await manager.startup();
-          window?.webContents.send(
-            'updateVersionDisplay',
-            `Warcraft Recorder v${appVersion}`,
-          );
-        } catch (err) {
-          console.error(
-            '[Main] Failed to init recorder after permission grant',
-            err,
-          );
-        }
-      }, 2000);
-    }
-  }
 
-  if (firstTimeSetup) {
-    console.info('[Main] Run first time setup actions');
-    runFirstTimeSetupActionsObs();
-    cfg.set('firstTimeSetup', false);
+    // Makes macOS prompt for it and list the app in System Settings.
+    perms.requestScreenRecording();
+
+    const tccPoll = setInterval(async () => {
+      if (!perms.canRecord()) return;
+      clearInterval(tccPoll);
+      console.info(
+        '[Main] Screen Recording permission detected — initializing recorder',
+      );
+      try {
+        await initializeRecorder();
+      } catch (err) {
+        console.error(
+          '[Main] Failed to init recorder after permission grant',
+          err,
+        );
+      }
+    }, 2000);
   }
 
   // This gets hit on a user triggering refresh with CTRL-R.
@@ -335,12 +349,21 @@ const createWindow = async () => {
     return { action: 'deny' };
   });
 
-  if (getPermissionsGate().canUseGlobalHotkeys()) {
+  if (perms.canUseGlobalHotkeys()) {
     uIOhook.start();
   } else {
     console.warn(
       '[Main] Accessibility permission missing — global hotkeys disabled',
     );
+
+    const accessibilityPoll = setInterval(() => {
+      if (!perms.canUseGlobalHotkeys()) return;
+      clearInterval(accessibilityPoll);
+      console.info(
+        '[Main] Accessibility permission detected — enabling hotkeys',
+      );
+      uIOhook.start();
+    }, 2000);
   }
 
   // Runs the auto-updater, which checks GitHub for new releases
@@ -573,6 +596,13 @@ ipcMain.on(
 );
 
 /**
+ * macOS: show the window again when the dock icon is clicked.
+ */
+app.on('activate', () => {
+  window?.show();
+});
+
+/**
  * Shutdown the app if all windows closed.
  */
 app.on('window-all-closed', async () => {
@@ -585,6 +615,7 @@ app.on('window-all-closed', async () => {
  */
 app.on('before-quit', () => {
   console.info('[Main] Running before-quit actions');
+  quitting = true;
 
   if (tray) {
     console.info('[Main] Destroy tray icon');
