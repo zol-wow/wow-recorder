@@ -1179,17 +1179,6 @@ const runFirstTimeSetupActionsNoObs = () => {
       );
       cfg.set('obsCaptureMode', 'window_capture');
     }
-
-    const currentEncoder = cfg.get<string>('obsRecEncoder');
-    const macCompatibleEncoders = new Set(['OBS_X264']);
-    if (currentEncoder && !macCompatibleEncoders.has(currentEncoder)) {
-      console.info(
-        '[Util] Migrating obsRecEncoder',
-        currentEncoder,
-        '→ OBS_X264 on macOS',
-      );
-      cfg.set('obsRecEncoder', 'OBS_X264');
-    }
   }
 
   const isRetailConfigured =

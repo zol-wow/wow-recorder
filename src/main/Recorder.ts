@@ -2076,6 +2076,15 @@ export default class Recorder extends EventEmitter {
     const encoders = this.getAvailableEncoders();
     const highRes = isHighRes(this.resolution);
 
+    if (encoders.includes(ESupportedEncoders.VT_HEVC) && highRes) {
+      // Apple hardware H.264 tops out at 4096 wide, HEVC doesn't.
+      return ESupportedEncoders.VT_HEVC;
+    }
+
+    if (encoders.includes(ESupportedEncoders.VT_H264) && !highRes) {
+      return ESupportedEncoders.VT_H264;
+    }
+
     if (highRes) {
       // Just go for the software encoder if high res.
       return ESupportedEncoders.OBS_X264;
