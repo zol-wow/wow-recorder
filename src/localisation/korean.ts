@@ -611,6 +611,14 @@ const KOREAN: Translations = {
   [Phrase.Forever]: 'Forever',
   [Phrase.CloudUploadForeverDescription]: 'Forever 기록을 클라우드에 업로드할지 여부입니다.',
   [Phrase.CloudUploadForeverLabel]: 'Forever 업로드',
+  [Phrase.PermissionsRequiredTitle]: '권한이 필요합니다',
+  [Phrase.PermissionsScreenRecordingText]: 'Warcraft Recorder가 게임 플레이를 녹화하려면 화면 기록 권한이 필요합니다. 시스템 설정에서 Warcraft Recorder에 대해 활성화하세요.',
+  [Phrase.PermissionsScreenRecordingLabel]: '화면 기록 (필수)',
+  [Phrase.PermissionsAccessibilityLabel]: '손쉬운 사용 (전역 단축키용)',
+  [Phrase.PermissionsRefreshText]: '시스템 설정에서 권한을 변경한 후 이 창으로 돌아오세요. 자동으로 업데이트됩니다.',
+  [Phrase.PermissionsAccessibilityMissingText]: '손쉬운 사용 권한이 없으면 푸시 투 토크 및 기타 전역 단축키가 비활성화됩니다. 나중에 허용할 수 있습니다.',
+  [Phrase.PermissionGranted]: '허용됨',
+  [Phrase.PermissionOpenSettings]: '설정 열기',
 };
 
 export default KOREAN;

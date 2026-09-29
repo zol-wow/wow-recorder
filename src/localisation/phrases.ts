@@ -608,6 +608,14 @@ enum Phrase {
   Forever,
   CloudUploadForeverDescription,
   CloudUploadForeverLabel,
+  PermissionsRequiredTitle,
+  PermissionsScreenRecordingText,
+  PermissionsScreenRecordingLabel,
+  PermissionsAccessibilityLabel,
+  PermissionsRefreshText,
+  PermissionsAccessibilityMissingText,
+  PermissionGranted,
+  PermissionOpenSettings,
 }
 
 enum Language {

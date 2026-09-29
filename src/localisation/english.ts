@@ -610,6 +610,14 @@ const ENGLISH: Translations = {
   [Phrase.Forever]: 'Forever',
   [Phrase.CloudUploadForeverDescription]: 'If Forever recordings should be uploaded to the cloud.',
   [Phrase.CloudUploadForeverLabel]: 'Upload Forever',
+  [Phrase.PermissionsRequiredTitle]: 'Permissions required',
+  [Phrase.PermissionsScreenRecordingText]: 'Warcraft Recorder needs Screen Recording permission to capture your gameplay. Enable it for Warcraft Recorder in System Settings.',
+  [Phrase.PermissionsScreenRecordingLabel]: 'Screen Recording (required)',
+  [Phrase.PermissionsAccessibilityLabel]: 'Accessibility (for global hotkeys)',
+  [Phrase.PermissionsRefreshText]: 'After changing a permission in System Settings, return to this window. It updates automatically.',
+  [Phrase.PermissionsAccessibilityMissingText]: 'Without Accessibility, push-to-talk and other global hotkeys are disabled. You can grant it later.',
+  [Phrase.PermissionGranted]: 'Granted',
+  [Phrase.PermissionOpenSettings]: 'Open Settings',
 };
 
 export default ENGLISH;
