@@ -4,10 +4,8 @@ import { CaptureModeCapability } from 'main/platform/recorder/IRecorderBackend';
 import { ESupportedEncoders } from 'main/obsEnums';
 
 // Superset of all encoders we may surface across platforms — the
-// real backend filters down to its supported set. Used as the initial
-// data while the IPC resolves so the dropdown isn't briefly missing
-// options on Mac (Apple VideoToolbox encoders) before the real caps
-// arrive.
+// real backend filters down to its supported set. Shown while the IPC
+// resolves so the dropdown isn't briefly missing options.
 const FALLBACK: RecorderCapabilities = {
   captureModes: [
     CaptureModeCapability.GAME,
@@ -30,14 +28,16 @@ const FALLBACK: RecorderCapabilities = {
 /**
  * Read recorder-backend capabilities once — they are constant for a
  * given platform + app version, so staleTime is effectively infinite.
- * Returns FALLBACK (full Windows feature set) until the IPC resolves.
+ * Returns FALLBACK until the IPC resolves. It's placeholder data rather
+ * than initial data, as initial data counts as fresh and would stop
+ * the query from ever running.
  */
 export function useRecorderCapabilities(): RecorderCapabilities {
   const { data } = useQuery<RecorderCapabilities>({
     queryKey: ['recorder-capabilities'],
     queryFn: () => window.recorderCapabilities.get(),
     staleTime: Infinity,
-    initialData: FALLBACK,
+    placeholderData: FALLBACK,
   });
-  return data;
+  return data ?? FALLBACK;
 }
