@@ -610,6 +610,14 @@ enum Phrase {
   CloudUploadForeverLabel,
   Character,
   Realm,
+  PermissionsRequiredTitle,
+  PermissionsScreenRecordingText,
+  PermissionsScreenRecordingLabel,
+  PermissionsAccessibilityLabel,
+  PermissionsRefreshText,
+  PermissionsAccessibilityMissingText,
+  PermissionGranted,
+  PermissionOpenSettings,
 }
 
 enum Language {

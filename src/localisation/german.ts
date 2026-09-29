@@ -613,6 +613,14 @@ const GERMAN: Translations = {
   [Phrase.CloudUploadForeverLabel]: 'Forever hochladen',
   [Phrase.Character]: 'Charakter',
   [Phrase.Realm]: 'Reich',
+  [Phrase.PermissionsRequiredTitle]: 'Berechtigungen erforderlich',
+  [Phrase.PermissionsScreenRecordingText]: 'Warcraft Recorder benötigt die Berechtigung zur Bildschirmaufnahme, um dein Gameplay aufzuzeichnen. Aktiviere sie in den Systemeinstellungen für Warcraft Recorder.',
+  [Phrase.PermissionsScreenRecordingLabel]: 'Bildschirmaufnahme (erforderlich)',
+  [Phrase.PermissionsAccessibilityLabel]: 'Bedienungshilfen (für globale Tastenkürzel)',
+  [Phrase.PermissionsRefreshText]: 'Kehre nach dem Ändern einer Berechtigung in den Systemeinstellungen zu diesem Fenster zurück. Es aktualisiert sich automatisch.',
+  [Phrase.PermissionsAccessibilityMissingText]: 'Ohne Bedienungshilfen sind Push-to-Talk und andere globale Tastenkürzel deaktiviert. Du kannst die Berechtigung auch später erteilen.',
+  [Phrase.PermissionGranted]: 'Erteilt',
+  [Phrase.PermissionOpenSettings]: 'Einstellungen öffnen',
 };
 
 export default GERMAN;

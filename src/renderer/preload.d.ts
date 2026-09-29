@@ -146,7 +146,6 @@ declare global {
     permissions: {
       snapshot: () => Promise<PermissionsSnapshot>;
       openSettingsFor: (key: PermissionKey) => void;
-      refresh: () => Promise<PermissionsSnapshot>;
     };
     recorderCapabilities: {
       get: () => Promise<
