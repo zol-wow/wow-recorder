@@ -35,16 +35,15 @@ const atomicQueue = require('atomic-queue');
 const devMode = process.env.NODE_ENV === 'development';
 const isDebug = devMode || process.env.DEBUG_PROD === 'true';
 
+// Use the dynamically linked ffmpeg we package with OBS in noobs. This
+// allows us to avoid including a static ffmpeg which is an extra 60MB.
 const ffmpegPathAbs = getFfmpegPathProvider().getPath();
 ffmpeg.setFfmpegPath(ffmpegPathAbs);
 
-if (process.platform === 'darwin') {
-  // ffprobe ships next to ffmpeg via @ffprobe-installer; only the
-  // Mac path needs it today (Win uses noobs's bundled ffmpeg).
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, global-require
-  const ffprobe = require('@ffprobe-installer/ffprobe');
-  ffmpeg.setFfprobePath(ffprobe.path);
-}
+// ffprobe ships alongside it. Set it explicitly, otherwise fluent-ffmpeg
+// prefers whatever ffprobe is first on the PATH.
+const ffprobeName = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe';
+ffmpeg.setFfprobePath(path.join(path.dirname(ffmpegPathAbs), ffprobeName));
 
 /**
  * A queue for cutting videos to size.
