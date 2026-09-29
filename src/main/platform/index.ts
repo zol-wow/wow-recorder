@@ -45,10 +45,6 @@ let permissionsGate: IPermissionsGate | undefined;
 
 /**
  * Platform impls are lazy-required so the wrong-platform file never loads.
- * NoobsBackend on mac would trigger a runtime `require('noobs')` — which
- * resolves to an unbuilt native module there. OsnBackend on Windows would
- * similarly try to pull in `obs-studio-node`. Keeping the imports conditional
- * means only the correct backend module is ever evaluated.
  */
 
 export function getRecorderBackend(): IRecorderBackend {

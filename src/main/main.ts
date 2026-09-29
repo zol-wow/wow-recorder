@@ -212,13 +212,9 @@ const createWindow = async () => {
   window.on('system-context-menu', (event) => event.preventDefault());
 
   // We need to do this AFTER creating the window as it's used by the preview.
-  // Init OSN + start the manager only when Screen Recording is granted.
-  // OSN's video context init blocks waiting for ScreenCaptureKit; without
-  // permission `Manager.startup()` → `Recorder.configureBase()` →
-  // `OsnBackend.resetVideoContext()` hangs the main process indefinitely.
-  // The PermissionsWizard renders in the renderer to walk the user through
-  // granting; once granted, the poll below picks it up and finishes init
-  // without requiring a manual relaunch.
+  // On macOS, only init OBS and start the manager once Screen Recording is
+  // granted. The PermissionsWizard walks the user through granting it; the
+  // poll below then finishes init without requiring a relaunch.
   const perms = getPermissionsGate();
   const recordingReady = perms.canRecord();
   if (recordingReady) {
@@ -318,7 +314,10 @@ const createWindow = async () => {
     let moveTimer: NodeJS.Timeout | undefined;
     const onMove = () => {
       if (moveTimer) clearTimeout(moveTimer);
-      moveTimer = setTimeout(() => window?.webContents.send('redrawPreview'), 50);
+      moveTimer = setTimeout(
+        () => window?.webContents.send('redrawPreview'),
+        50,
+      );
     };
     window.on('move', onMove);
     window.on('moved', onMove);
