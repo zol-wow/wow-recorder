@@ -26,8 +26,6 @@ export enum CaptureModeCapability {
 export interface RecorderCapabilities {
   /** Capture source types this backend can create. */
   captureModes: CaptureModeCapability[];
-  /** Encoder ids (ESupportedEncoders values) this backend exposes. */
-  encoders: string[];
 }
 
 export type SignalCallback = (signal: Signal) => void;

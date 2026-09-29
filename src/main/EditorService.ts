@@ -261,7 +261,7 @@ export default class EditorService {
     // happened outside the div. Treat as drag end + commit so the
     // user's last-known position/scale is persisted, then bail.
     if (ev.buttons === 0) {
-      this.handleMouseUp(ev);
+      this.handleMouseUp();
       return;
     }
     const pt = this.viewToCanvas(ev.offsetX, ev.offsetY);
@@ -330,7 +330,7 @@ export default class EditorService {
     });
   }
 
-  handleMouseUp(_ev: EditorMouseEvent): void {
+  handleMouseUp(): void {
     if (!this.backend || !this.dragState) {
       this.dragState = undefined;
       return;
