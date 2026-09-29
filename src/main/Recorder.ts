@@ -514,9 +514,7 @@ export default class Recorder extends EventEmitter {
     ipcMain.on('editor:mouseMove', (_e, ev: EditorMouseEvent) =>
       editor.handleMouseMove(ev),
     );
-    ipcMain.on('editor:mouseUp', (_e, ev: EditorMouseEvent) =>
-      editor.handleMouseUp(ev),
-    );
+    ipcMain.on('editor:mouseUp', () => editor.handleMouseUp());
   }
 
   /**

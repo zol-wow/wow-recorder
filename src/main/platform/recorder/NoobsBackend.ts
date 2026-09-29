@@ -1,5 +1,4 @@
 import noobs from 'noobs';
-import { ESupportedEncoders } from 'main/obsEnums';
 import type {
   FileExtension,
   ObsData,
@@ -25,15 +24,6 @@ export default class NoobsBackend implements IRecorderBackend {
       CaptureModeCapability.GAME,
       CaptureModeCapability.WINDOW,
       CaptureModeCapability.MONITOR,
-    ],
-    encoders: [
-      ESupportedEncoders.OBS_X264,
-      ESupportedEncoders.AMD_H264,
-      ESupportedEncoders.AMD_AV1,
-      ESupportedEncoders.NVENC_H264,
-      ESupportedEncoders.NVENC_AV1,
-      ESupportedEncoders.QSV_H264,
-      ESupportedEncoders.QSV_AV1,
     ],
   };
 
@@ -131,7 +121,7 @@ export default class NoobsBackend implements IRecorderBackend {
   }
 
   // Editor selection — only used by Mac OBS-drawn UI path.
-  setSceneItemSelected(_id: string, _selected: boolean): void {}
+  setSceneItemSelected(): void {}
 
   clearSceneItemSelection(): void {}
 

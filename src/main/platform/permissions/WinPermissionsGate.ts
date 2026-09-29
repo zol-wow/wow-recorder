@@ -1,8 +1,4 @@
-import type {
-  IPermissionsGate,
-  PermissionKey,
-  PermissionsSnapshot,
-} from './IPermissionsGate';
+import type { IPermissionsGate, PermissionsSnapshot } from './IPermissionsGate';
 
 /**
  * Windows no-op permissions gate. DirectX hook (game capture), window
@@ -23,7 +19,7 @@ export default class WinPermissionsGate implements IPermissionsGate {
   canUseGlobalHotkeys(): boolean {
     return true;
   }
-  openSettingsFor(_key: PermissionKey): void {
+  openSettingsFor(): void {
     // no-op
   }
 }

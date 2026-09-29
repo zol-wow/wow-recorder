@@ -2,7 +2,6 @@
 // __importDefault wrapper, which turns `noobs.Init` into
 // `noobs.default.Init` at runtime.
 const noobs: typeof import('noobs').default = require('noobs');
-import { ESupportedEncoders } from 'main/obsEnums';
 import type {
   FileExtension,
   ObsData,
@@ -40,11 +39,6 @@ const SCK_APPLICATION_AUDIO = 1;
 export default class MacNoobsBackend implements IRecorderBackend {
   public readonly capabilities: RecorderCapabilities = {
     captureModes: [CaptureModeCapability.WINDOW, CaptureModeCapability.MONITOR],
-    encoders: [
-      ESupportedEncoders.OBS_X264,
-      ESupportedEncoders.VT_H264,
-      ESupportedEncoders.VT_HEVC,
-    ],
   };
 
   // Lifecycle
@@ -276,7 +270,7 @@ export default class MacNoobsBackend implements IRecorderBackend {
   // tracks `selectedName` JS-side and uses it for handle hit-tests.
   // Leaving these as no-ops avoids a round-trip to native on every
   // mousedown.
-  setSceneItemSelected(_id: string, _selected: boolean): void {}
+  setSceneItemSelected(): void {}
   clearSceneItemSelection(): void {}
 
   listSceneItems(): string[] {
