@@ -19,6 +19,9 @@ export default class WinPermissionsGate implements IPermissionsGate {
   canUseGlobalHotkeys(): boolean {
     return true;
   }
+  requestScreenRecording(): void {
+    // no-op
+  }
   openSettingsFor(): void {
     // no-op
   }

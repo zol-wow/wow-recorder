@@ -1,4 +1,4 @@
-import { shell, systemPreferences } from 'electron';
+import { desktopCapturer, shell, systemPreferences } from 'electron';
 import type {
   IPermissionsGate,
   PermissionKey,
@@ -58,6 +58,17 @@ export default class MacTccGate implements IPermissionsGate {
 
   canUseGlobalHotkeys(): boolean {
     return this.snapshot().accessibility === 'granted';
+  }
+
+  requestScreenRecording(): void {
+    // Only reading the status doesn't register the app with macOS. Listing
+    // screens does: it shows the permission prompt and adds the app to the
+    // Screen Recording list in System Settings.
+    desktopCapturer
+      .getSources({ types: ['screen'], thumbnailSize: { width: 0, height: 0 } })
+      .catch((error) => {
+        console.warn('[MacTccGate] Screen Recording request failed', error);
+      });
   }
 
   openSettingsFor(key: PermissionKey): void {
