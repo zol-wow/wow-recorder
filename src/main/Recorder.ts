@@ -58,7 +58,8 @@ import type { IRecorderBackend } from 'main/platform/recorder/IRecorderBackend';
 import { CaptureModeCapability } from 'main/platform/recorder/IRecorderBackend';
 import EditorService, { type EditorMouseEvent } from './EditorService';
 import { getNativeWindowHandle, send } from './main';
-import { app, ipcMain } from 'electron';
+import { getApplicationLogDir } from './logging';
+import { ipcMain } from 'electron';
 import Poller from 'utils/Poller';
 import AsyncQueue from 'utils/AsyncQueue';
 import assert from 'assert';
@@ -1304,11 +1305,12 @@ export default class Recorder extends EventEmitter {
     console.info('[Recorder] Initializing OBS');
     const cb = this.handleSignal.bind(this);
 
+    // OBS logs go alongside the application logs.
+    const logPath = getApplicationLogDir();
+
     // The main bundle is in release/app/dist/main in both dev and prod.
-    let logPath = path.resolve(__dirname, './logs');
     let noobsPath = path.resolve(__dirname, '../../node_modules/noobs/dist');
 
-    logPath = fixPathWhenPackaged(logPath);
     noobsPath = fixPathWhenPackaged(noobsPath);
 
     console.info('[Recorder] Noobs path:', noobsPath);
