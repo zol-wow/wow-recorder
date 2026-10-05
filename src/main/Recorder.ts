@@ -1026,6 +1026,7 @@ export default class Recorder extends EventEmitter {
   public shutdownOBS() {
     console.info('[Recorder] OBS shutting down');
     clearInterval(this.instantReplayTimer);
+    this.clearFindWindowInterval();
 
     if (!this.obsInitialized) {
       console.info('[Recorder] OBS not initialized so not attempting shutdown');
@@ -1746,6 +1747,54 @@ export default class Recorder extends EventEmitter {
   }
 
   /**
+   * Find the WoW window in the capture source's window list.
+   */
+  private findWowWindow(source: string) {
+    const properties = this.backend.getSourceProperties(source);
+    const windows = properties.find((item) => item.name === 'window');
+
+    if (!windows) {
+      console.error('[Recorder] Failed to find window setting');
+      throw new Error('Failed to find window setting');
+    }
+
+    if (windows.type !== 'list') {
+      console.error('[Recorder] Window setting is not a list');
+      throw new Error('Window setting is not a list');
+    }
+
+    return windows.items.find(Recorder.windowMatch);
+  }
+
+  /**
+   * Mac window capture is bound to a window ID, where Windows OBS matches
+   * on the window title and re-attaches by itself. WoW can replace its
+   * window while running, which stops the stream and leaves the capture
+   * black, so keep checking while WoW runs and follow the new window.
+   */
+  private watchMacWindow() {
+    this.findWindowTimer = undefined;
+
+    if (!this.captureSource || this.captureMode !== CaptureMode.WINDOW) {
+      return;
+    }
+
+    const match = this.findWowWindow(this.captureSource);
+    const settings = this.backend.getSourceSettings(this.captureSource);
+
+    if (match && String(settings.window) !== String(match.value)) {
+      console.info('[Recorder] WoW window changed, re-attaching:', match);
+      const updated = { ...settings, window: match.value };
+      this.backend.setSourceSettings(this.captureSource, updated);
+    }
+
+    this.findWindowTimer = setTimeout(
+      () => this.watchMacWindow(),
+      this.findWindowIntervalDuration,
+    );
+  }
+
+  /**
    * Attach the current game_capture or window_capture source to the WoW client.
    */
   public attachCaptureSource() {
@@ -1765,27 +1814,21 @@ export default class Recorder extends EventEmitter {
       return;
     }
 
-    const properties = this.backend.getSourceProperties(this.captureSource);
-    const windows = properties.find((item) => item.name === 'window');
-
-    if (!windows) {
-      console.error('[Recorder] Failed to find window setting');
-      throw new Error('Failed to find window setting');
-    }
-
-    if (windows.type !== 'list') {
-      console.error('[Recorder] Window setting is not a list');
-      throw new Error('Window setting is not a list');
-    }
-
-    const opts = windows.items;
-    const match = opts.find(Recorder.windowMatch);
+    const match = this.findWowWindow(this.captureSource);
 
     if (match) {
       console.info('[Recorder] Found matching window for game capture:', match);
       const settings = this.backend.getSourceSettings(this.captureSource);
       const updated = { ...settings, window: match.value };
       this.backend.setSourceSettings(this.captureSource, updated);
+
+      if (process.platform === 'darwin') {
+        this.findWindowTimer = setTimeout(
+          () => this.watchMacWindow(),
+          this.findWindowIntervalDuration,
+        );
+      }
+
       return;
     }
 
