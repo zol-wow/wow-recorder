@@ -1,4 +1,4 @@
-import { app, Menu, MenuItemConstructorOptions } from 'electron';
+import { Menu, MenuItemConstructorOptions } from 'electron';
 
 export default class MenuBuilder {
   constructor() {}
@@ -60,55 +60,13 @@ export default class MenuBuilder {
   }
 
   private buildMacTemplate(): MenuItemConstructorOptions[] {
+    // The standard macOS menus, with labels from Electron. Edit is needed
+    // for copy and paste shortcuts to work.
     return [
-      {
-        label: app.name,
-        submenu: [
-          { role: 'about' },
-          { type: 'separator' },
-          { role: 'services' },
-          { type: 'separator' },
-          { role: 'hide' },
-          { role: 'hideOthers' },
-          { role: 'unhide' },
-          { type: 'separator' },
-          { role: 'quit' },
-        ],
-      },
-      {
-        label: 'Edit',
-        submenu: [
-          { role: 'undo' },
-          { role: 'redo' },
-          { type: 'separator' },
-          { role: 'cut' },
-          { role: 'copy' },
-          { role: 'paste' },
-          { role: 'selectAll' },
-        ],
-      },
-      {
-        label: 'View',
-        submenu: [
-          { role: 'reload', accelerator: 'Cmd+R' },
-          { role: 'toggleDevTools', accelerator: 'Alt+Cmd+I' },
-          { type: 'separator' },
-          { role: 'resetZoom' },
-          { role: 'zoomIn' },
-          { role: 'zoomOut' },
-          { type: 'separator' },
-          { role: 'togglefullscreen' },
-        ],
-      },
-      {
-        label: 'Window',
-        submenu: [
-          { role: 'minimize' },
-          { role: 'close' },
-          { type: 'separator' },
-          { role: 'front' },
-        ],
-      },
+      { role: 'appMenu' },
+      { role: 'editMenu' },
+      { role: 'windowMenu' },
+      ...this.buildDefaultTemplate(),
     ];
   }
 }
