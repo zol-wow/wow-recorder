@@ -94,7 +94,7 @@ macOS support needs Apple Silicon and macOS 13 or later. It uses the same `noobs
 
 Until a noobs release with macOS binaries is published, build it yourself:
 
-1. In a noobs checkout next to this repo, run `./scripts/build-libobs-mac.sh`, then `npm run build` and `npm pack`.
+1. In a noobs checkout next to this repo, run `./scripts/build-libobs-mac.sh`, then `npm install`, `npm run build` and `npm pack`.
 1. Here, run `npm install --ignore-scripts`. The usual postinstall would try to build the published, Windows-only noobs.
 1. In `release/app`, run `npm install --no-save <path to noobs tarball>`.
 1. Run `npm start`. Grant Screen Recording permission to your terminal when asked.
