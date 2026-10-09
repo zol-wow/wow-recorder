@@ -25,6 +25,11 @@ export default class MacPgrepPoller
   private retail = false;
   private classic = false;
 
+  /**
+   * Bumped on stop so results from polls still in flight are ignored.
+   */
+  private generation = 0;
+
   isWowRunning(): boolean {
     return this.wowRunning;
   }
@@ -47,6 +52,7 @@ export default class MacPgrepPoller
 
   stop(): void {
     console.info('[MacPgrepPoller] Stop');
+    this.generation++;
     this.wowRunning = false;
     if (this.timer) {
       clearInterval(this.timer);
@@ -55,8 +61,12 @@ export default class MacPgrepPoller
   }
 
   private poll = () => {
+    const { generation } = this;
+
     Promise.all([this.pgrep(RETAIL_PROCESS), this.pgrep(CLASSIC_PROCESS)]).then(
-      ([retail, classic]) => this.apply(retail, classic),
+      ([retail, classic]) => {
+        if (generation === this.generation) this.apply(retail, classic);
+      },
     );
   };
 
