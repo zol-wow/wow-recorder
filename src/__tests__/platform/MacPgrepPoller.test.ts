@@ -104,6 +104,28 @@ describe('MacPgrepPoller', () => {
     runTick(false, true);
   });
 
+  it('ignores a poll that finishes after stop', async () => {
+    const poller = new MacPgrepPoller();
+    const events: string[] = [];
+    poller.on(WowProcessEvent.STARTED, () => events.push('started'));
+    poller.start();
+
+    (spawn as jest.Mock).mockImplementation(() => {
+      const p = new FakeProc();
+      pendingProcs.push(p);
+      return p;
+    });
+    pendingProcs = [];
+    jest.advanceTimersByTime(2100);
+    poller.stop();
+
+    pendingProcs.forEach((p) => p.emit('exit', 0));
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+
+    expect(events).toEqual([]);
+    expect(poller.isWowRunning()).toBe(false);
+  });
+
   it('does not emit if recordRetail is false even when retail binary runs', () => {
     cfgFlags.recordRetail = false;
     const poller = new MacPgrepPoller();
