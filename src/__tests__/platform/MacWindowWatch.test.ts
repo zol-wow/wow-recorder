@@ -15,31 +15,32 @@ jest.mock('renderer/rendererutils', () => ({}));
 
 import Recorder from 'main/Recorder';
 
+const SOURCE = 'WCR Window Capture';
+
 /**
  * Builds a Recorder without running its constructor (which starts OBS),
- * attached to a fake backend whose WoW window list can be changed.
+ * attached to a fake backend whose on screen WoW windows can be changed.
  */
-const makeRecorder = (initialWindow: number) => {
-  let windowId = initialWindow;
+const makeRecorder = (initialWindows: number[]) => {
+  let windows = initialWindows;
   let settings: Record<string, unknown> = { type: 1 };
 
   const backend = {
-    getSourceProperties: () => [
+    getSourceProperties: jest.fn(() => [
       {
         name: 'window',
         type: 'list',
-        items: windowId
-          ? [
-              { name: '[Finder] Desktop', value: 7, disabled: false },
-              {
-                name: '[Wow] World of Warcraft',
-                value: windowId,
-                disabled: false,
-              },
-            ]
-          : [],
+        items: [
+          { name: '[Finder] Desktop', value: 7, disabled: false },
+          ...windows.map((value) => ({
+            name: '[Wow] World of Warcraft',
+            value,
+            disabled: false,
+          })),
+        ],
       },
-    ],
+    ]),
+    isWindowOnScreen: jest.fn((id: number) => windows.includes(id)),
     getSourceSettings: () => settings,
     setSourceSettings: jest.fn((_: string, s: Record<string, unknown>) => {
       settings = s;
@@ -49,7 +50,7 @@ const makeRecorder = (initialWindow: number) => {
   const recorder = Object.create(Recorder.prototype);
   Object.assign(recorder, {
     backend,
-    captureSource: 'WCR Window Capture',
+    captureSource: SOURCE,
     captureMode: 0, // CaptureMode.WINDOW
     findWindowAttempts: 0,
     findWindowAttemptLimit: 10,
@@ -59,13 +60,14 @@ const makeRecorder = (initialWindow: number) => {
   return {
     recorder,
     backend,
-    setWindow: (id: number) => {
-      windowId = id;
+    attachedTo: () => settings.window,
+    setWindows: (ids: number[]) => {
+      windows = ids;
     },
   };
 };
 
-describe('mac window capture follows a replaced WoW window', () => {
+describe('mac window capture follows the WoW window', () => {
   const realPlatform = process.platform;
 
   beforeAll(() => {
@@ -78,61 +80,82 @@ describe('mac window capture follows a replaced WoW window', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
+    jest.spyOn(console, 'info').mockImplementation(() => {});
   });
 
   afterEach(() => {
     jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  it('only lists windows while the attached one is off screen', () => {
+    const { recorder, backend, attachedTo } = makeRecorder([1634]);
+
+    recorder.attachCaptureSource();
+    jest.advanceTimersByTime(60000);
+
+    expect(attachedTo()).toBe(1634);
+    expect(backend.getSourceProperties).toHaveBeenCalledTimes(1);
+    expect(backend.isWindowOnScreen).toHaveBeenCalledTimes(12);
+    recorder.clearFindWindowInterval();
   });
 
   it('re-attaches when WoW replaces its window', () => {
-    const { recorder, backend, setWindow } = makeRecorder(1634);
+    const { recorder, attachedTo, setWindows } = makeRecorder([1634]);
 
     recorder.attachCaptureSource();
-    expect(backend.setSourceSettings).toHaveBeenCalledTimes(1);
-    expect(backend.getSourceSettings().window).toBe(1634);
-
-    setWindow(2015);
+    setWindows([2015]);
     jest.advanceTimersByTime(5000);
 
-    expect(backend.setSourceSettings).toHaveBeenCalledTimes(2);
-    expect(backend.getSourceSettings().window).toBe(2015);
+    expect(attachedTo()).toBe(2015);
     recorder.clearFindWindowInterval();
   });
 
-  it('leaves the stream alone while the window is unchanged', () => {
-    const { recorder, backend } = makeRecorder(1634);
+  it('keeps the window while WoW is minimised', () => {
+    const { recorder, backend, attachedTo, setWindows } = makeRecorder([1634]);
 
     recorder.attachCaptureSource();
+    setWindows([]);
     jest.advanceTimersByTime(60000);
-
-    expect(backend.setSourceSettings).toHaveBeenCalledTimes(1);
-    recorder.clearFindWindowInterval();
-  });
-
-  it('keeps the old window while WoW has none on screen', () => {
-    const { recorder, backend, setWindow } = makeRecorder(1634);
-
-    recorder.attachCaptureSource();
-    setWindow(0);
-    jest.advanceTimersByTime(60000);
-
-    expect(backend.getSourceSettings().window).toBe(1634);
-
-    setWindow(2015);
+    setWindows([1634]);
     jest.advanceTimersByTime(5000);
 
-    expect(backend.getSourceSettings().window).toBe(2015);
+    expect(attachedTo()).toBe(1634);
+    expect(backend.setSourceSettings).toHaveBeenCalledTimes(1);
     recorder.clearFindWindowInterval();
   });
 
-  it('stops watching once cleared', () => {
-    const { recorder, backend, setWindow } = makeRecorder(1634);
+  it('keeps looking past the retry limit until WoW is on screen', () => {
+    const { recorder, attachedTo, setWindows } = makeRecorder([]);
+
+    recorder.attachCaptureSource();
+    jest.advanceTimersByTime(5000 * 20);
+    expect(attachedTo()).toBeUndefined();
+
+    setWindows([2015]);
+    jest.advanceTimersByTime(5000);
+    expect(attachedTo()).toBe(2015);
+    recorder.clearFindWindowInterval();
+  });
+
+  it('runs one check loop when attached twice', () => {
+    const { recorder, backend } = makeRecorder([1634]);
+
+    recorder.attachCaptureSource();
+    recorder.attachCaptureSource();
+    jest.advanceTimersByTime(50000);
+
+    expect(backend.isWindowOnScreen).toHaveBeenCalledTimes(10);
+    recorder.clearFindWindowInterval();
+  });
+
+  it('stops checking once cleared', () => {
+    const { recorder, backend } = makeRecorder([1634]);
 
     recorder.attachCaptureSource();
     recorder.clearFindWindowInterval();
-    setWindow(2015);
     jest.advanceTimersByTime(60000);
 
-    expect(backend.setSourceSettings).toHaveBeenCalledTimes(1);
+    expect(backend.isWindowOnScreen).not.toHaveBeenCalled();
   });
 });

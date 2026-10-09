@@ -28,12 +28,9 @@ export type CommitListener = (info: {
   name: string;
   x: number;
   y: number;
-  width: number;
-  height: number;
+  scale: number;
   cropLeft: number;
-  cropRight: number;
   cropTop: number;
-  cropBottom: number;
 }) => void;
 
 // Hit-radius (in canvas-px) for the libobs-drawn corner handles. Tuned
@@ -94,21 +91,12 @@ export default class EditorService {
   }
 
   /**
-   * Drop selection + drag state. Call this when libobs's display is
-   * recreated (resolution change, scene rebuild) since the underlying
-   * sceneitem.selected flag is cleared on the libobs side and our
-   * cached selectedName is no longer authoritative.
+   * Drop selection + drag state. Call this when the scene is rebuilt,
+   * since the selected source may no longer exist.
    */
   reset(): void {
     this.dragState = undefined;
     this.selectedName = undefined;
-    if (this.backend) {
-      try {
-        this.backend.clearSceneItemSelection();
-      } catch {
-        /* sceneitems may have been recreated; ignore */
-      }
-    }
   }
 
   viewToCanvas(vx: number, vy: number): CanvasPoint | null {
@@ -183,7 +171,6 @@ export default class EditorService {
     if (!this.backend) return;
     const pt = this.viewToCanvas(ev.offsetX, ev.offsetY);
     if (!pt) {
-      this.backend.clearSceneItemSelection();
       this.selectedName = undefined;
       return;
     }
@@ -239,8 +226,6 @@ export default class EditorService {
       if (pt.x < left || pt.x > right) continue;
       if (pt.y < top || pt.y > bottom) continue;
 
-      this.backend.clearSceneItemSelection();
-      this.backend.setSceneItemSelected(name, true);
       this.selectedName = name;
       this.dragState = {
         kind: 'move',
@@ -251,7 +236,6 @@ export default class EditorService {
       return;
     }
 
-    this.backend.clearSceneItemSelection();
     this.selectedName = undefined;
   }
 
@@ -343,12 +327,9 @@ export default class EditorService {
         name,
         x: pos.x,
         y: pos.y,
-        width: pos.width * pos.scaleX,
-        height: pos.height * pos.scaleY,
+        scale: pos.scaleX, // Scaling is uniform.
         cropLeft: pos.cropLeft,
-        cropRight: pos.cropRight,
         cropTop: pos.cropTop,
-        cropBottom: pos.cropBottom,
       }),
     );
   }
