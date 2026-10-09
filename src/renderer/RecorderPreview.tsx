@@ -26,6 +26,14 @@ enum Snap {
   NONE = 'None',
 }
 
+const isMac = window.platformInfo?.platform === 'darwin';
+
+/**
+ * Source positions are in physical pixels on Windows, so divide by the
+ * display scaling to draw them. On Mac they're already in CSS pixels.
+ */
+const previewZoomFactor = () => (isMac ? 1 : window.devicePixelRatio);
+
 const RecorderPreview = (props: {
   appState: AppState;
   previewEnabled: boolean;
@@ -195,27 +203,19 @@ const RecorderPreview = (props: {
   const configureDraggableBoxes = async () => {
     const display = await ipc.getDisplayInfo();
     setPreviewInfo(display);
-    // C3 diagnostic: log preview vs canvas + box numbers each refresh.
-
-    console.info('[RecorderPreview] displayInfo', display);
 
     if (config.chatOverlayEnabled) {
       const pos = await ipc.getSourcePosition(SceneItem.OVERLAY);
-
-      console.info('[RecorderPreview] overlay pos', pos);
       setOverlayBoxDimensions(pos);
     }
 
     const pos = await ipc.getSourcePosition(SceneItem.GAME);
-
-    console.info('[RecorderPreview] game pos', pos);
     setGameBoxDimensions(pos);
   };
 
   const configurePreview = async () => {
     if (!previewDivRef.current) return;
     const rect = previewDivRef.current.getBoundingClientRect();
-    const isMac = window.platformInfo?.platform === 'darwin';
 
     if (isMac) {
       // Send top-left CSS coords. obs_interface_mac.mm does the
@@ -252,11 +252,7 @@ const RecorderPreview = (props: {
   }, []);
 
   const onSourceMove = (event: MouseEvent, src: SceneItem) => {
-    // Mac: getSourcePosition returns CSS-px (configurePreview sends CSS-px
-    // to main, sf ratio computed in CSS units). Skip DPR division.
-    // Windows: physical-px throughout, divide by DPR for CSS render.
-    const zoomFactor =
-      window.platformInfo?.platform === 'darwin' ? 1 : window.devicePixelRatio;
+    const zoomFactor = previewZoomFactor();
 
     const fn =
       src === SceneItem.OVERLAY
@@ -302,11 +298,7 @@ const RecorderPreview = (props: {
   };
 
   const onSourceScale = (event: MouseEvent, src: SceneItem) => {
-    // Mac: getSourcePosition returns CSS-px (configurePreview sends CSS-px
-    // to main, sf ratio computed in CSS units). Skip DPR division.
-    // Windows: physical-px throughout, divide by DPR for CSS render.
-    const zoomFactor =
-      window.platformInfo?.platform === 'darwin' ? 1 : window.devicePixelRatio;
+    const zoomFactor = previewZoomFactor();
 
     const fn =
       src === SceneItem.OVERLAY
@@ -444,11 +436,7 @@ const RecorderPreview = (props: {
     }
 
     // Handle windows display scaling.
-    // Mac: getSourcePosition returns CSS-px (configurePreview sends CSS-px
-    // to main, sf ratio computed in CSS units). Skip DPR division.
-    // Windows: physical-px throughout, divide by DPR for CSS render.
-    const zoomFactor =
-      window.platformInfo?.platform === 'darwin' ? 1 : window.devicePixelRatio;
+    const zoomFactor = previewZoomFactor();
     position.left = position.left / zoomFactor;
     position.top = position.top / zoomFactor;
 
@@ -487,24 +475,10 @@ const RecorderPreview = (props: {
     );
   };
 
-  const isMac = window.platformInfo?.platform === 'darwin';
-
-  // Mac: BrowserWindow is transparent and the OBS canvas NSView sits
-  // beneath WebContents in the contentView's subview stack. Leave the
-  // preview slot's bg unset so its alpha is zero and the canvas shows
-  // through; render React drag boxes on top, same as Windows. The
-  // outer wrapper keeps an opaque bg so the rest of the app chrome
-  // doesn't go transparent.
-  // Win: opaque bg-black wrapper, noobs draws into a separate child
-  // window underneath the BrowserWindow.
-  // Mac: child NSWindow renders OBS canvas above BrowserWindow,
-  // mouse-transparent. Clicks fall through to this transparent
-  // overlay div which forwards events to EditorService over IPC.
-  // EditorService hit-tests sources, calls setSourcePos, and (TODO
-  // Path C) libobs's draw_callback paints selection rect + corner
-  // handles inside the canvas window so the user can see what
-  // they're dragging. DOM drag boxes are not rendered on Mac because
-  // the canvas window covers them.
+  // On Mac, noobs draws the preview in a mouse-transparent child window
+  // above this one, which would cover the drag boxes. Instead, an empty
+  // div takes the mouse events and forwards them to the editor in the
+  // main process, and noobs draws the source outlines and handles.
   const toEditorEv = (e: React.MouseEvent) => ({
     offsetX: e.nativeEvent.offsetX,
     offsetY: e.nativeEvent.offsetY,
@@ -526,9 +500,13 @@ const RecorderPreview = (props: {
           <div
             className="absolute inset-0"
             style={{ pointerEvents: 'auto', cursor: 'default' }}
-            onMouseDown={(e) => ipc.editorMouseDown(toEditorEv(e))}
-            onMouseMove={(e) => ipc.editorMouseMove(toEditorEv(e))}
-            onMouseUp={(e) => ipc.editorMouseUp(toEditorEv(e))}
+            onPointerDown={(e) => {
+              // Keep getting events if the mouse leaves while dragging.
+              e.currentTarget.setPointerCapture(e.pointerId);
+              ipc.editorMouseDown(toEditorEv(e));
+            }}
+            onPointerMove={(e) => ipc.editorMouseMove(toEditorEv(e))}
+            onPointerUp={(e) => ipc.editorMouseUp(toEditorEv(e))}
             onContextMenu={(e) => e.stopPropagation()}
           />
         ) : (
