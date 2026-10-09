@@ -52,6 +52,17 @@ export default class CombatLogWatcher extends EventEmitter {
   private current = '';
 
   /**
+   * On Mac, timer to poll the log directory, see watch().
+   */
+  private macPollTimer?: NodeJS.Timeout;
+
+  /**
+   * On Mac, set when a log file is created or deleted so the next poll
+   * looks for the newest one.
+   */
+  private macRescan = true;
+
+  /**
    * Constructor, unit of timeout is minutes. No events will be emitted until
    * watch() is called.
    */
@@ -87,6 +98,7 @@ export default class CombatLogWatcher extends EventEmitter {
         console.info('[CombatLogWatcher] Create or delete event', file);
         const fullPath = path.join(this.logDir, file);
         delete this.state[fullPath];
+        this.macRescan = true;
         return;
       }
 
@@ -98,32 +110,33 @@ export default class CombatLogWatcher extends EventEmitter {
       this.queue.add(() => this.process(file));
     });
 
-    // macOS fs.watch (FSEvents) coalesces append modifications and
-    // often only emits `rename` events for create/delete. Without
-    // a poll the watcher misses CHALLENGE_MODE_START / ENCOUNTER_*
-    // lines once WoW starts writing to the log. Poll the directory
-    // every 2s for size changes — process() short-circuits when
-    // bytesToRead < 1, so this is cheap when nothing changed.
+    // macOS fs.watch (FSEvents) coalesces appends, so change events for
+    // the log WoW is writing can be missed. Poll it every 2s instead.
+    // process() returns early when there is nothing new to read.
     if (process.platform === 'darwin') {
       this.macPollTimer = setInterval(() => this.macPollOnce(), 2000);
     }
   }
 
-  private macPollTimer: NodeJS.Timeout | undefined;
-
   private async macPollOnce() {
     try {
-      const logs = await getSortedFiles(this.logDir, 'WoWCombatLog.*.txt');
-      if (logs.length === 0) return;
-      const newest = logs[0];
-      const file = path.basename(newest.name);
-      if (file !== this.current) {
-        console.info('[CombatLogWatcher] (poll) New active log file', file);
-        this.current = file;
+      if (this.macRescan) {
+        this.macRescan = false;
+        const logs = await getSortedFiles(this.logDir, 'WoWCombatLog.*.txt');
+        if (logs.length === 0) return;
+        const file = path.basename(logs[0].name);
+
+        if (file !== this.current) {
+          console.info('[CombatLogWatcher] New active log file', file);
+          this.current = file;
+        }
       }
+
+      if (!this.current) return;
+      const file = this.current;
       this.queue.add(() => this.process(file));
     } catch (err) {
-      console.warn('[CombatLogWatcher] macPollOnce threw', err);
+      console.warn('[CombatLogWatcher] Failed to poll the log directory', err);
     }
   }
 
