@@ -120,13 +120,12 @@ export default class NoobsBackend implements IRecorderBackend {
     noobs.SetSourceAudioTracks(id, tracks);
   }
 
-  // Editor selection — only used by Mac OBS-drawn UI path.
-  setSceneItemSelected(): void {}
-
-  clearSceneItemSelection(): void {}
-
   listSceneItems(): string[] {
-    return [];
+    return noobs.ListSceneItems();
+  }
+
+  isWindowOnScreen(): boolean {
+    return true; // Only needed on Mac, OBS follows the window on Windows.
   }
 
   // Audio

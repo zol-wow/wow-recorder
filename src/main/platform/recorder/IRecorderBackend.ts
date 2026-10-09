@@ -93,9 +93,8 @@ export interface IRecorderBackend {
   setSourcePos(id: string, pos: SceneItemPosition): void;
   setSourceVolume(id: string, volume: number): void;
   setSourceAudioTracks(id: string, tracks: number): void;
-  setSceneItemSelected(id: string, selected: boolean): void;
-  clearSceneItemSelection(): void;
   listSceneItems(): string[];
+  isWindowOnScreen(windowId: number): boolean;
 
   // Audio
   setVolmeterEnabled(enabled: boolean): void;

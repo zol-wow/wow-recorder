@@ -1,7 +1,4 @@
-// Native module via raw require — bypass esModuleInterop's
-// __importDefault wrapper, which turns `noobs.Init` into
-// `noobs.default.Init` at runtime.
-const noobs: typeof import('noobs').default = require('noobs');
+import noobs from 'noobs';
 import type {
   FileExtension,
   ObsData,
@@ -263,18 +260,12 @@ export default class MacNoobsBackend implements IRecorderBackend {
     noobs.SetSourceAudioTracks(id, tracks);
   }
 
-  // libobs's `selected` flag drives standard OBS UI selection
-  // rendering. Our draw_callback already paints orange outlines +
-  // corner handles for every scene item via setDrawSourceOutline,
-  // so we don't need to track selection in libobs — EditorService
-  // tracks `selectedName` JS-side and uses it for handle hit-tests.
-  // Leaving these as no-ops avoids a round-trip to native on every
-  // mousedown.
-  setSceneItemSelected(): void {}
-  clearSceneItemSelection(): void {}
-
   listSceneItems(): string[] {
     return noobs.ListSceneItems();
+  }
+
+  isWindowOnScreen(windowId: number): boolean {
+    return noobs.IsWindowOnScreen(windowId);
   }
 
   // Audio

@@ -1304,13 +1304,10 @@ export default class Recorder extends EventEmitter {
     // the new canvas-px position to ConfigService via Recorder.
     const editor = EditorService.getInstance();
     editor.setBackend(this.backend);
-    editor.onCommit(({ name, x, y, width, height }) => {
-      // Recover scaleX from the committed bbox: width here is already
-      // post-scale (sourceWidth * scaleX), so divide back out.
-      const pos = this.backend.getSourcePos(name);
-      const scaleX = pos.width > 0 ? width / pos.width : pos.scaleX;
-      void height; // scaleY assumed equal to scaleX (uniform aspect lock).
-      this.commitEditorPosition(name, x, y, scaleX);
+    editor.onCommit(({ name, x, y, scale, cropLeft, cropTop }) => {
+      const item =
+        name === VideoSourceName.OVERLAY ? SceneItem.OVERLAY : SceneItem.GAME;
+      this.saveSourcePosition(item, x, y, scale, cropLeft, cropTop);
     });
   }
 
@@ -1767,38 +1764,16 @@ export default class Recorder extends EventEmitter {
   }
 
   /**
-   * Mac window capture is bound to a window ID, where Windows OBS matches
-   * on the window title and re-attaches by itself. WoW can replace its
-   * window while running, which stops the stream and leaves the capture
-   * black, so keep checking while WoW runs and follow the new window.
-   */
-  private watchMacWindow() {
-    this.findWindowTimer = undefined;
-
-    if (!this.captureSource || this.captureMode !== CaptureMode.WINDOW) {
-      return;
-    }
-
-    const match = this.findWowWindow(this.captureSource);
-    const settings = this.backend.getSourceSettings(this.captureSource);
-
-    if (match && String(settings.window) !== String(match.value)) {
-      console.info('[Recorder] WoW window changed, re-attaching:', match);
-      const updated = { ...settings, window: match.value };
-      this.backend.setSourceSettings(this.captureSource, updated);
-    }
-
-    this.findWindowTimer = setTimeout(
-      () => this.watchMacWindow(),
-      this.findWindowIntervalDuration,
-    );
-  }
-
-  /**
    * Attach the current game_capture or window_capture source to the WoW client.
    */
   public attachCaptureSource() {
     console.info('[Recorder] Attaching capture source', this.captureSource);
+
+    // This can be called again while a retry is pending.
+    if (this.findWindowTimer) {
+      clearTimeout(this.findWindowTimer);
+      this.findWindowTimer = undefined;
+    }
 
     if (
       this.captureMode !== CaptureMode.WINDOW &&
@@ -1821,14 +1796,18 @@ export default class Recorder extends EventEmitter {
       const settings = this.backend.getSourceSettings(this.captureSource);
       const updated = { ...settings, window: match.value };
       this.backend.setSourceSettings(this.captureSource, updated);
+    }
 
-      if (process.platform === 'darwin') {
-        this.findWindowTimer = setTimeout(
-          () => this.watchMacWindow(),
-          this.findWindowIntervalDuration,
-        );
-      }
+    if (process.platform === 'darwin') {
+      this.findWindowTimer = setTimeout(
+        () => this.checkMacWindow(),
+        this.findWindowIntervalDuration,
+      );
 
+      return;
+    }
+
+    if (match) {
       return;
     }
 
@@ -1848,6 +1827,40 @@ export default class Recorder extends EventEmitter {
       '[Recorder] Failed to find WoW window after',
       this.findWindowAttempts,
       'attempts. Giving up.',
+    );
+  }
+
+  /**
+   * Mac window capture is bound to a window ID, where Windows OBS matches
+   * on the window title and re-attaches by itself. WoW can replace its
+   * window while running, which would leave the capture black. So while
+   * WoW runs, check the window is still on screen, which is cheap, and
+   * only look for another one when it isn't. That also covers WoW having
+   * no window on screen yet, e.g. when it's minimised.
+   */
+  private checkMacWindow() {
+    this.findWindowTimer = undefined;
+
+    if (!this.captureSource || this.captureMode !== CaptureMode.WINDOW) {
+      return;
+    }
+
+    const settings = this.backend.getSourceSettings(this.captureSource);
+    const current = Number(settings.window) || 0;
+
+    if (!this.backend.isWindowOnScreen(current)) {
+      const match = this.findWowWindow(this.captureSource);
+
+      if (match && match.value !== current) {
+        console.info('[Recorder] Attaching to WoW window:', match);
+        const updated = { ...settings, window: match.value };
+        this.backend.setSourceSettings(this.captureSource, updated);
+      }
+    }
+
+    this.findWindowTimer = setTimeout(
+      () => this.checkMacWindow(),
+      this.findWindowIntervalDuration,
     );
   }
 
@@ -2036,24 +2049,6 @@ export default class Recorder extends EventEmitter {
   /**
    * Save a video source position in the config.
    */
-  /**
-   * Mac editor commit hook: map an OBS source name to its SceneItem and
-   * persist the new canvas-px position to ConfigService. Called from
-   * EditorService after the user releases the mouse.
-   */
-  public commitEditorPosition(
-    sourceName: string,
-    x: number,
-    y: number,
-    scaleX: number,
-  ): void {
-    const item =
-      sourceName === VideoSourceName.OVERLAY
-        ? SceneItem.OVERLAY
-        : SceneItem.GAME;
-    this.saveSourcePosition(item, x, y, scaleX);
-  }
-
   private saveSourcePosition(
     item: SceneItem,
     x: number,
