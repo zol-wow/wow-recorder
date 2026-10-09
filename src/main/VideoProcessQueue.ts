@@ -734,11 +734,13 @@ export default class VideoProcessQueue {
 
     const outputPath = VideoProcessQueue.getOutputVideoPath(data, outputDir);
 
-    // mp4 muxer tags HEVC streams as `hev1` by default. Many players
-    // (QuickTime, react-player, browsers) only handle `hvc1`, which
-    // is why VT_HEVC recordings render black. Probe the source and
-    // force `hvc1` if needed. Pure copy, no re-encode.
-    const isHevc = await VideoProcessQueue.isHevcStream(data.source);
+    // mp4 muxer tags HEVC streams as `hev1` by default, and Mac players
+    // (QuickTime, the app's own player) only handle `hvc1`, so VT_HEVC
+    // recordings would render black. Probe the source and force `hvc1`
+    // if needed. Pure copy, no re-encode.
+    const isHevc =
+      process.platform === 'darwin' &&
+      (await VideoProcessQueue.isHevcStream(data.source));
 
     const fn = ffmpeg(data.source)
       .setStartTime(start)
