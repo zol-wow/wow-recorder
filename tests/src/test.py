@@ -63,8 +63,6 @@ STORAGE_PATH = os.environ.get(
     "WCR_STORAGE_PATH",
     "D:/wr-test",
 )
-# Backend produces .mp4 on Windows (noobs) and .mkv on macOS (OSN).
-OUTPUT_EXT = os.environ.get("WCR_OUTPUT_EXT", "mp4")
 
 CWD = os.path.dirname(__file__)
 
@@ -161,20 +159,20 @@ def check_output_file(expected, index):
     :param expected: The expected substring to find.
     :param index: The index of the MP4 file to check, -1 for latest.
     """
-    files = glob(f"{STORAGE_PATH}/*.{OUTPUT_EXT}")
-
+    files = glob(f"{STORAGE_PATH}/*.mp4")
+    
     if not files:
-        print(f"FAILED: No {OUTPUT_EXT.upper()} files found in {STORAGE_PATH}")
+        print(f"FAILED: No MP4 files found in {STORAGE_PATH}")
         sys.exit(1)
 
     files.sort(key=os.path.getctime)
     actual = files[index]
-
+    
     if expected in actual:
-        print(f"  {OUTPUT_EXT.upper()} existed as expected: {actual}")
+        print(f"  MP4 existed as expected: {actual}")
     else:
-        print(f"FAILED: {OUTPUT_EXT.upper()} at index {index} did not contain {expected}, was {actual}")
-        sys.exit(1)
+        print(f"FAILED: MP4 at index {index} did not contain {expected}, was {actual}")
+        sys.exit(1) 
     
 
 def check_output(output):
