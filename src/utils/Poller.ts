@@ -5,9 +5,7 @@ import { WowProcessEvent } from 'main/types';
 
 /**
  * Process poller singleton. Delegates to the platform-specific
- * implementation (rust-ps.exe on Windows, pgrep on macOS in a later
- * phase). Retained as a singleton so existing callers (`Manager`) do
- * not need changes.
+ * implementation (rust-ps.exe on Windows, pgrep on macOS).
  */
 export default class Poller extends EventEmitter {
   private static instance: Poller;
