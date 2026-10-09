@@ -80,6 +80,7 @@
     "mac": {
       "category": "public.app-category.utilities",
       "icon": "assets/icon.icns",
+      "minimumSystemVersion": "13.0",
       "target": [
         {
           "target": "dmg",
