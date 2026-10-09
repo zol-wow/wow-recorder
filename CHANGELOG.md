@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump the Electron version to `45.2.3`, and related packages.
 - Fix side menu width so that it doesn't shrink when the window is small.
 - Failed update checks are logged instead of causing an unhandled rejection.
+- Files deleted while the app lists a folder, such as the temporary recording folder, no longer cause an error.
 
 ## [7.15.0] - 2026-11-06
 ### Changed
