@@ -1841,6 +1841,12 @@ export default class Recorder extends EventEmitter {
   private checkMacWindow() {
     this.findWindowTimer = undefined;
 
+    // Restarting the poller (e.g. on reconfigure) doesn't report WoW
+    // stopping, so check here too. The next WoW start attaches again.
+    if (!Poller.getInstance().isWowRunning()) {
+      return;
+    }
+
     if (!this.captureSource || this.captureMode !== CaptureMode.WINDOW) {
       return;
     }
