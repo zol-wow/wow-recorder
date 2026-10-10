@@ -9,7 +9,11 @@ jest.mock('main/main', () => ({ send: jest.fn() }));
 jest.mock('main/util', () => ({}));
 jest.mock('main/EditorService', () => ({}));
 jest.mock('main/platform', () => ({ getRecorderBackend: () => ({}) }));
-jest.mock('utils/Poller', () => ({}));
+const poller = { wowRunning: true };
+jest.mock('utils/Poller', () => ({
+  __esModule: true,
+  default: { getInstance: () => ({ isWowRunning: () => poller.wowRunning }) },
+}));
 jest.mock('main/logging', () => ({}));
 jest.mock('renderer/rendererutils', () => ({}));
 
@@ -79,6 +83,7 @@ describe('mac window capture follows the WoW window', () => {
   });
 
   beforeEach(() => {
+    poller.wowRunning = true;
     jest.useFakeTimers();
     jest.spyOn(console, 'info').mockImplementation(() => {});
   });
@@ -147,6 +152,16 @@ describe('mac window capture follows the WoW window', () => {
 
     expect(backend.isWindowOnScreen).toHaveBeenCalledTimes(10);
     recorder.clearFindWindowInterval();
+  });
+
+  it('stops checking once WoW is not running', () => {
+    const { recorder, backend } = makeRecorder([1634]);
+
+    recorder.attachCaptureSource();
+    poller.wowRunning = false;
+    jest.advanceTimersByTime(60000);
+
+    expect(backend.isWindowOnScreen).not.toHaveBeenCalled();
   });
 
   it('stops checking once cleared', () => {
