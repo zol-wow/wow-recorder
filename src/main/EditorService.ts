@@ -255,10 +255,9 @@ export default class EditorService {
 
   handleMouseMove(ev: EditorMouseEvent): void {
     if (!this.backend || !this.dragState) return;
-    // Cursor re-entered the overlay with no button pressed → mouseUp
-    // happened outside the div. Treat as drag end + commit so the
-    // user's last-known position/scale is persisted, then bail.
-    if (ev.buttons === 0) {
+    // The left button was released without a mouseUp reaching us, e.g.
+    // while another button is still held. Treat it as the drag ending.
+    if ((ev.buttons & 1) === 0) {
       this.handleMouseUp();
       return;
     }
