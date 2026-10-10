@@ -1,5 +1,7 @@
 jest.mock('noobs', () => ({}), { virtual: true });
-jest.mock('uiohook-napi', () => ({ uIOhook: {}, EventType: {} }));
+jest.mock('uiohook-napi', () => ({ uIOhook: {}, EventType: {} }), {
+  virtual: true,
+});
 jest.mock('electron', () => ({ app: { isPackaged: false }, ipcMain: {} }));
 jest.mock('config/ConfigService', () => ({
   __esModule: true,
