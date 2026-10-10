@@ -47,7 +47,11 @@ function repairFramework(fwPath) {
       fs.symlinkSync(path.join('Versions', 'Current', name), topLink);
       added++;
     } catch (err) {
-      console.warn('[fix-noobs-framework] symlink failed', topLink, err.message);
+      console.warn(
+        '[fix-noobs-framework] symlink failed',
+        topLink,
+        err.message,
+      );
     }
   }
   return added;
