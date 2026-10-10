@@ -2,6 +2,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
+// Lets a test act while a directory scan is in progress.
+const scan = { during: () => {} };
+
 jest.mock('../../main/util', () => {
   const nodeFs = jest.requireActual('fs');
   const nodePath = jest.requireActual('path');
@@ -19,6 +22,7 @@ jest.mock('../../main/util', () => {
         .filter((f: string) => f.match(new RegExp(pattern)))
         .map((f: string) => nodePath.join(dir, f));
       const infos = await Promise.all(files.map(getFileInfo));
+      scan.during();
       return infos.sort((a, b) => b.mtime - a.mtime);
     },
   };
@@ -35,6 +39,7 @@ describe('mac combat log poll', () => {
   });
 
   afterEach(() => {
+    scan.during = () => {};
     fs.rmSync(dir, { recursive: true, force: true });
     jest.restoreAllMocks();
   });
@@ -72,6 +77,18 @@ describe('mac combat log poll', () => {
     await poll(watcher);
 
     expect(state(watcher).current).toBe('WoWCombatLog-100926_210000.txt');
+  });
+
+  it('rescans if a log changes during a scan', async () => {
+    fs.writeFileSync(path.join(dir, 'WoWCombatLog-100926_200000.txt'), '');
+    const watcher = new CombatLogWatcher(dir);
+    scan.during = () => {
+      state(watcher).macRescan = true; // As the rename event does.
+    };
+
+    await poll(watcher);
+
+    expect(state(watcher).macRescan).toBe(true);
   });
 
   it('retries the scan if it fails', async () => {
