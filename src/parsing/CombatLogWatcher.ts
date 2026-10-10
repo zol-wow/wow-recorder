@@ -121,9 +121,14 @@ export default class CombatLogWatcher extends EventEmitter {
   private async macPollOnce() {
     try {
       if (this.macRescan) {
-        this.macRescan = false;
         const logs = await getSortedFiles(this.logDir, 'WoWCombatLog.*.txt');
-        if (logs.length === 0) return;
+
+        if (logs.length === 0) {
+          this.current = '';
+          return;
+        }
+
+        this.macRescan = false;
         const file = path.basename(logs[0].name);
 
         if (file !== this.current) {
