@@ -85,6 +85,19 @@ describe('mac scene editor', () => {
     expect(commit).not.toHaveBeenCalled();
   });
 
+  it('ends the drag when the left button is released', () => {
+    const { editor, commit, pos, at } = setup();
+    const rightOnly = { button: 2, buttons: 2 };
+
+    editor.handleMouseDown(at(50, 50));
+    editor.handleMouseMove(at(60, 50));
+    editor.handleMouseMove(at(150, 90, rightOnly));
+    editor.handleMouseMove(at(250, 90, rightOnly));
+
+    expect(commit).toHaveBeenCalledTimes(1);
+    expect(pos.x).toBe(10);
+  });
+
   it('resizes from the visible corner', () => {
     const { editor, commit, at } = setup();
 
