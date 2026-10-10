@@ -1,4 +1,8 @@
 import type { IRecorderBackend } from './platform/recorder/IRecorderBackend';
+import type {
+  SceneItemPosition,
+  SourceDimensions,
+} from './platform/recorder/types';
 
 export interface EditorMouseEvent {
   // View-local px (relative to the preview NSView frame, top-left origin
@@ -23,6 +27,24 @@ interface CanvasPoint {
 }
 
 type Corner = 'tl' | 'tr' | 'bl' | 'br';
+
+/**
+ * The visible rectangle of a source in canvas-px. Crop is taken off before
+ * scaling, the same as noobs draws the outline.
+ */
+const visibleBounds = (pos: SceneItemPosition & SourceDimensions) => {
+  const width = pos.width - pos.cropLeft - pos.cropRight;
+  const height = pos.height - pos.cropTop - pos.cropBottom;
+
+  return {
+    width,
+    height,
+    left: pos.x,
+    top: pos.y,
+    right: pos.x + width * pos.scaleX,
+    bottom: pos.y + height * pos.scaleY,
+  };
+};
 
 export type CommitListener = (info: {
   name: string;
@@ -148,12 +170,10 @@ export default class EditorService {
    */
   private hitCornerHandle(name: string, pt: CanvasPoint): Corner | undefined {
     if (!this.backend) return undefined;
-    const pos = this.backend.getSourcePos(name);
-    if (!pos.width || !pos.height) return undefined;
-    const left = pos.x;
-    const top = pos.y;
-    const right = pos.x + pos.width * pos.scaleX;
-    const bottom = pos.y + pos.height * pos.scaleY;
+    const { width, height, left, top, right, bottom } = visibleBounds(
+      this.backend.getSourcePos(name),
+    );
+    if (width <= 0 || height <= 0) return undefined;
     const r = this.viewPxToCanvasPx(HANDLE_HIT_PX);
     const corners: Array<[Corner, number, number]> = [
       ['tl', left, top],
@@ -168,7 +188,7 @@ export default class EditorService {
   }
 
   handleMouseDown(ev: EditorMouseEvent): void {
-    if (!this.backend) return;
+    if (!this.backend || ev.button !== 0) return;
     const pt = this.viewToCanvas(ev.offsetX, ev.offsetY);
     if (!pt) {
       this.selectedName = undefined;
@@ -181,11 +201,9 @@ export default class EditorService {
     if (this.selectedName) {
       const corner = this.hitCornerHandle(this.selectedName, pt);
       if (corner) {
-        const pos = this.backend.getSourcePos(this.selectedName);
-        const left = pos.x;
-        const top = pos.y;
-        const right = pos.x + pos.width * pos.scaleX;
-        const bottom = pos.y + pos.height * pos.scaleY;
+        const { width, height, left, top, right, bottom } = visibleBounds(
+          this.backend.getSourcePos(this.selectedName),
+        );
         const anchor: CanvasPoint = (() => {
           switch (corner) {
             case 'tl':
@@ -204,8 +222,8 @@ export default class EditorService {
           name: this.selectedName,
           corner,
           anchor,
-          sourceWidth: pos.width,
-          sourceHeight: pos.height,
+          sourceWidth: width,
+          sourceHeight: height,
         };
         return;
       }
@@ -217,12 +235,8 @@ export default class EditorService {
     for (let i = items.length - 1; i >= 0; i -= 1) {
       const name = items[i];
       const pos = this.backend.getSourcePos(name);
-      if (!pos.width || !pos.height) continue;
-
-      const left = pos.x;
-      const top = pos.y;
-      const right = pos.x + pos.width * pos.scaleX;
-      const bottom = pos.y + pos.height * pos.scaleY;
+      const { width, height, left, top, right, bottom } = visibleBounds(pos);
+      if (width <= 0 || height <= 0) continue;
       if (pt.x < left || pt.x > right) continue;
       if (pt.y < top || pt.y > bottom) continue;
 

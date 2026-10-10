@@ -1576,6 +1576,7 @@ export default class Recorder extends EventEmitter {
     if (this.overlaySource) {
       // Might be a no-op, we never actually delete this source.
       this.backend.removeSourceFromScene(this.overlaySource);
+      EditorService.getInstance().reset();
     }
 
     if (!chatOverlayEnabled) {
