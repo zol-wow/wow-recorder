@@ -34,7 +34,9 @@ export type {
   SourceDimensions,
 } from './recorder/types';
 
-const isMac = process.platform === 'darwin';
+// Same names as the Linux port (PR 793) uses, so its checks fit in here.
+export const isWindows = process.platform === 'win32';
+export const isMac = process.platform === 'darwin';
 
 let recorderBackend: IRecorderBackend | undefined;
 let processPoller: IProcessPoller | undefined;

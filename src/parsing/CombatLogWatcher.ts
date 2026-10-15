@@ -4,6 +4,7 @@ import util from 'util';
 import { FileInfo } from 'main/types';
 import path from 'path';
 import { getFileInfo, getSortedFiles } from '../main/util';
+import { isMac } from '../main/platform';
 import LogLine from './LogLine';
 import AsyncQueue from 'utils/AsyncQueue';
 
@@ -113,7 +114,7 @@ export default class CombatLogWatcher extends EventEmitter {
     // macOS fs.watch (FSEvents) coalesces appends, so change events for
     // the log WoW is writing can be missed. Poll it every 2s instead.
     // process() returns early when there is nothing new to read.
-    if (process.platform === 'darwin') {
+    if (isMac) {
       this.macPollTimer = setInterval(() => this.macPollOnce(), 2000);
     }
   }

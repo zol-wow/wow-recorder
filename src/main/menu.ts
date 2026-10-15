@@ -1,13 +1,13 @@
 import { Menu, MenuItemConstructorOptions } from 'electron';
+import { isMac } from './platform';
 
 export default class MenuBuilder {
   constructor() {}
 
   buildMenu(): Menu {
-    const template =
-      process.platform === 'darwin'
-        ? this.buildMacTemplate()
-        : this.buildDefaultTemplate();
+    const template = isMac
+      ? this.buildMacTemplate()
+      : this.buildDefaultTemplate();
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
     return menu;

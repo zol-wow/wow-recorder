@@ -36,7 +36,7 @@ import Poller from 'utils/Poller';
 import Recorder from './Recorder';
 import AsyncQueue from 'utils/AsyncQueue';
 import { getApplicationLogDir, setupApplicationLogging } from './logging';
-import { getPermissionsGate, getRecorderBackend } from './platform';
+import { getPermissionsGate, getRecorderBackend, isMac } from './platform';
 
 setupApplicationLogging();
 const appVersion = app.getVersion();
@@ -150,7 +150,6 @@ const installExtensions = async () => {
  * Setup tray icon, menu and event listeners.
  */
 const setupTray = () => {
-  const isMac = process.platform === 'darwin';
   const trayIconPath = isMac
     ? getAssetPath('./icon/tray/Template.png')
     : getAssetPath('./icon/small-icon.png');
@@ -198,8 +197,6 @@ const createWindow = async () => {
   if (isDebug) {
     await installExtensions();
   }
-
-  const isMac = process.platform === 'darwin';
 
   window = new BrowserWindow({
     show: false,
