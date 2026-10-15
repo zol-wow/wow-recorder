@@ -1,0 +1,130 @@
+# Builds the macOS (Apple Silicon) app on a GitHub runner, so releasing
+# for macOS doesn't need a Mac.
+#
+# When a release is published, this builds that tag and attaches the
+# dmg, zip and latest-mac.yml (used by the auto-updater) to the release.
+# It can also be run by hand on any branch, in which case the build is
+# kept as a workflow artifact.
+#
+# Until noobs publishes macOS binaries to npm, set the repository
+# variable NOOBS_MAC_TARBALL to the URL of the macOS noobs tarball
+# (noobs-darwin-arm64-<version>.tgz, attached to noobs releases).
+#
+# Signing and notarisation are optional. Without these secrets the app
+# is ad-hoc signed: it runs, but users have to allow it on first launch
+# and macOS asks for Screen Recording permission again after updates.
+#   MAC_CERT_P12_BASE64, MAC_CERT_PASSWORD
+#     "Developer ID Application" certificate, exported as .p12 and
+#     base64 encoded.
+#   APPLE_API_KEY_BASE64, APPLE_API_KEY_ID, APPLE_API_ISSUER
+#     App Store Connect API key (.p8, base64 encoded), for notarisation.
+
+name: Release macOS
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      noobs:
+        description: macOS noobs tarball URL (defaults to NOOBS_MAC_TARBALL)
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check the release matches the app version
+        if: github.event_name == 'release'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version=$(node -p "require('./release/app/package.json').version")
+          if [ "$TAG" != "$version" ]; then
+            echo "Release $TAG doesn't match app version $version"
+            exit 1
+          fi
+
+      # Install scripts are skipped: they would build the npm noobs, which
+      # has no macOS binaries yet. The native modules ship Node-API
+      # prebuilds, so nothing needs building for Electron. The app's
+      # lockfile is skipped as it points noobs at a local file.
+      - name: Install dependencies
+        env:
+          NOOBS: ${{ inputs.noobs || vars.NOOBS_MAC_TARBALL }}
+        run: |
+          if [ -z "$NOOBS" ]; then
+            echo "Set the NOOBS_MAC_TARBALL variable or the noobs input"
+            exit 1
+          fi
+          npm ci --ignore-scripts
+          cd release/app
+          npm install --no-package-lock --ignore-scripts
+          npm install --no-package-lock --no-save --ignore-scripts "$NOOBS"
+
+      - name: Build
+        run: npm run build
+
+      - name: Write the notarisation key
+        env:
+          KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
+          KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+        run: |
+          if [ -n "$KEY_BASE64" ]; then
+            key="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
+            echo "$KEY_BASE64" | base64 --decode > "$key"
+            echo "APPLE_API_KEY=$key" >> "$GITHUB_ENV"
+          fi
+
+      - name: Package
+        env:
+          CSC_LINK: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: |
+          args=(--mac --arm64 --publish never -c.npmRebuild=false)
+          if [ -z "$CSC_LINK" ]; then
+            unset CSC_LINK CSC_KEY_PASSWORD
+            args+=(-c.mac.identity=-)
+          fi
+          npx electron-builder "${args[@]}"
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: WarcraftRecorder-mac-arm64
+          path: |
+            release/build/*.dmg
+            release/build/*.zip
+            release/build/*.blockmap
+            release/build/latest-mac.yml
+          if-no-files-found: error
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release upload "$TAG" --clobber \
+            release/build/*.dmg \
+            release/build/*.zip \
+            release/build/*.blockmap \
+            release/build/latest-mac.yml

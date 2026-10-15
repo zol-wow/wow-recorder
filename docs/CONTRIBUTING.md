@@ -101,3 +101,5 @@ Until a noobs release with macOS binaries is published, build it yourself:
 1. To package, run `npm run package`. Set `CSC_NAME` to a signing identity to sign the app, otherwise the Screen Recording permission resets on every rebuild.
 
 The integration tests run on macOS too. Point them at your folders with `WCR_RETAIL_LOG_PATH` and `WCR_STORAGE_PATH`.
+
+Releases don't need a Mac. The `Release macOS` workflow builds the app on a GitHub runner and attaches it to each published release. The comments at the top of `.github/workflows/release-mac.yml` list the variable and the optional signing secrets it uses.
