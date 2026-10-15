@@ -1,3 +1,6 @@
+// main.ts is the app entry point, it can't be loaded in tests.
+jest.mock('main/main', () => ({ send: jest.fn() }));
+
 jest.mock(
   'config/ConfigService',
   () => ({
@@ -10,6 +13,16 @@ jest.mock(
   }),
   { virtual: true },
 );
+
+// Stay offline, so dungeons use the built-in keystone timers.
+jest.mock('storage/CloudClient', () => ({
+  __esModule: true,
+  default: {
+    getInstance: () => ({
+      getKeystoneTimers: () => Promise.reject(new Error('Offline')),
+    }),
+  },
+}));
 
 import { Flavour, PlayerDeathType } from '../../main/types';
 import ChallengeModeDungeon from '../../activitys/ChallengeModeDungeon';
