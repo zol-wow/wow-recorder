@@ -1,5 +1,6 @@
 import path from 'path';
 import { fixPathWhenPackaged } from './util';
+import { isMac } from './platform';
 import log from 'electron-log/main';
 import fs from 'fs';
 import { app } from 'electron';
@@ -86,7 +87,7 @@ export const setupApplicationLogging = () => {
 };
 
 export const getApplicationLogDir = () => {
-  if (process.platform === 'darwin' && app.isPackaged) {
+  if (isMac && app.isPackaged) {
     // Writing inside the .app bundle breaks its code signature, and
     // Gatekeeper then refuses the next launch. Use ~/Library/Logs.
     return app.getPath('logs');

@@ -53,7 +53,7 @@ import type {
   Signal,
   SourceDimensions,
 } from 'main/platform/recorder/types';
-import { getRecorderBackend } from 'main/platform';
+import { getRecorderBackend, isMac } from 'main/platform';
 import type { IRecorderBackend } from 'main/platform/recorder/IRecorderBackend';
 import { CaptureModeCapability } from 'main/platform/recorder/IRecorderBackend';
 import EditorService, { type EditorMouseEvent } from './EditorService';
@@ -1385,7 +1385,7 @@ export default class Recorder extends EventEmitter {
 
     const settings = this.backend.getSourceSettings(this.captureSource);
 
-    if (process.platform === 'darwin') {
+    if (isMac) {
       // Mac: source resolves to `screen_capture` with type=1
       // (Window mode). Windows-specific keys (capture_mode, method,
       // compatibility) don't apply; SCK uses `show_cursor` /
@@ -1495,7 +1495,6 @@ export default class Recorder extends EventEmitter {
     // Win monitor_capture exposes `monitor_id` (string list).
     // Mac screen_capture exposes `display_uuid` (string list, +
     // `type`/`show_cursor` instead of `method`/`capture_cursor`).
-    const isMac = process.platform === 'darwin';
     const monitorPropName = isMac ? 'display_uuid' : 'monitor_id';
     const monitors = properties.find((p) => p.name === monitorPropName);
 
@@ -1722,7 +1721,7 @@ export default class Recorder extends EventEmitter {
    * Warcraft" or "World of Warcraft Classic").
    */
   private static windowMatch(item: { name: string; value: string | number }) {
-    if (process.platform === 'darwin') {
+    if (isMac) {
       // mac-capture lists windows as `[<AppName>] <WindowTitle>`.
       const n = item.name;
       return (
@@ -1796,7 +1795,7 @@ export default class Recorder extends EventEmitter {
       this.backend.setSourceSettings(this.captureSource, updated);
     }
 
-    if (process.platform === 'darwin') {
+    if (isMac) {
       this.findWindowTimer = setTimeout(
         () => this.checkMacWindow(),
         this.findWindowIntervalDuration,

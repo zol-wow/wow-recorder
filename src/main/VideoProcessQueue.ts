@@ -29,7 +29,7 @@ import axios from 'axios';
 import DiskClient from 'storage/DiskClient';
 import Recorder from './Recorder';
 import { promises as fspromise } from 'fs';
-import { getFfmpegPathProvider } from 'main/platform';
+import { getFfmpegPathProvider, isMac, isWindows } from 'main/platform';
 
 const atomicQueue = require('atomic-queue');
 const devMode = process.env.NODE_ENV === 'development';
@@ -42,7 +42,7 @@ ffmpeg.setFfmpegPath(ffmpegPathAbs);
 
 // ffprobe ships alongside it. Set it explicitly, otherwise fluent-ffmpeg
 // prefers whatever ffprobe is first on the PATH.
-const ffprobeName = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe';
+const ffprobeName = isWindows ? 'ffprobe.exe' : 'ffprobe';
 ffmpeg.setFfprobePath(path.join(path.dirname(ffmpegPathAbs), ffprobeName));
 
 /**
@@ -738,9 +738,7 @@ export default class VideoProcessQueue {
     // (QuickTime, the app's own player) only handle `hvc1`, so VT_HEVC
     // recordings would render black. Probe the source and force `hvc1`
     // if needed. Pure copy, no re-encode.
-    const isHevc =
-      process.platform === 'darwin' &&
-      (await VideoProcessQueue.isHevcStream(data.source));
+    const isHevc = isMac && (await VideoProcessQueue.isHevcStream(data.source));
 
     const fn = ffmpeg(data.source)
       .setStartTime(start)
