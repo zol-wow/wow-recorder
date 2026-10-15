@@ -503,10 +503,9 @@ export default class Recorder extends EventEmitter {
       }
     });
 
-    // Mac scene editor: renderer's transparent overlay forwards mouse
-    // events; EditorService hit-tests scene items + drives the libobs
-    // green selection box. No-op when EditorService.backend is unset
-    // (Windows or pre-init).
+    // Mac scene editor: the renderer's transparent overlay forwards mouse
+    // events; EditorService hit-tests scene items and moves them. Only the
+    // Mac preview sends these, and they are ignored until OBS is initialised.
     const editor = EditorService.getInstance();
     ipcMain.on('editor:mouseDown', (_e, ev: EditorMouseEvent) =>
       editor.handleMouseDown(ev),
@@ -1066,10 +1065,8 @@ export default class Recorder extends EventEmitter {
    */
   public showPreview() {
     console.info('[Recorder] Show preview');
-    // libobs recreates the preview display each call to showPreview;
-    // sceneitem.selected flags are cleared in the new display context.
-    // Drop the EditorService's cached selection so the next click
-    // re-selects against the current scene state.
+    // Forget any selection or drag left over from when the preview was
+    // last shown, so the next click starts from the current scene.
     EditorService.getInstance().reset();
     this.backend.showPreview();
   }
@@ -1389,7 +1386,7 @@ export default class Recorder extends EventEmitter {
     const settings = this.backend.getSourceSettings(this.captureSource);
 
     if (process.platform === 'darwin') {
-      // Mac: source resolves to `mac_screen_capture` with type=1
+      // Mac: source resolves to `screen_capture` with type=1
       // (Window mode). Windows-specific keys (capture_mode, method,
       // compatibility) don't apply; SCK uses `show_cursor` /
       // `hide_obs`. The actual window id gets set in
@@ -1496,7 +1493,7 @@ export default class Recorder extends EventEmitter {
     const properties = this.backend.getSourceProperties(this.captureSource);
 
     // Win monitor_capture exposes `monitor_id` (string list).
-    // Mac screen_capture exposes `display` (int list, +
+    // Mac screen_capture exposes `display_uuid` (string list, +
     // `type`/`show_cursor` instead of `method`/`capture_cursor`).
     const isMac = process.platform === 'darwin';
     const monitorPropName = isMac ? 'display_uuid' : 'monitor_id';
