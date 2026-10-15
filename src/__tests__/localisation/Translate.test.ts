@@ -1,3 +1,6 @@
+// main.ts is the app entry point, it can't be loaded in tests.
+jest.mock('main/main', () => ({ send: jest.fn() }));
+
 import { Flavour, Metadata } from '../../main/types';
 import { convertKoreanVideoCategory } from '../../main/util';
 import { VideoCategory } from '../../types/VideoCategory';

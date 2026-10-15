@@ -1,8 +1,23 @@
+// main.ts is the app entry point, it can't be loaded in tests.
+jest.mock('main/main', () => ({ send: jest.fn() }));
+
 import LogLine from '../../parsing/LogLine';
 import CombatLogWatcher from '../../parsing/CombatLogWatcher';
 
+// Timestamps without a year are read as the current year, so pin it.
+beforeAll(() => {
+  jest.useFakeTimers({
+    now: new Date('2025-10-15T12:00:00'),
+    advanceTimers: true,
+  });
+});
+
+afterAll(() => {
+  jest.useRealTimers();
+});
+
 test('Basic Retail', async () => {
-  const combatLogParser = new CombatLogWatcher('', 2);
+  const combatLogParser = new CombatLogWatcher('');
   let promiseResolve: (value: LogLine | PromiseLike<LogLine>) => void;
 
   const testLogLinePromise: Promise<LogLine> = new Promise((resolve) => {
