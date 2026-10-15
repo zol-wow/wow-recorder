@@ -42,7 +42,7 @@ import { ESupportedEncoders } from './obsEnums';
 import Recorder from './Recorder';
 import { execFile } from 'child_process';
 import { specializationById } from './constants';
-import { getFileReveal, getWowPathResolver } from 'main/platform';
+import { getFileReveal, getWowPathResolver, isMac } from 'main/platform';
 import {
   getPlayerName,
   getPlayerSpecID,
@@ -1209,7 +1209,7 @@ const runFirstTimeSetupActionsObs = () => {
 const runFirstTimeSetupActionsNoObs = () => {
   const cfg = ConfigService.getInstance();
 
-  if (process.platform === 'darwin') {
+  if (isMac) {
     if (cfg.get<string>('obsCaptureMode') === 'game_capture') {
       console.info(
         '[Util] Migrating obsCaptureMode game_capture → window_capture on macOS',

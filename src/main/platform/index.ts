@@ -34,7 +34,8 @@ export type {
   SourceDimensions,
 } from './recorder/types';
 
-const isMac = process.platform === 'darwin';
+export const isWindows = process.platform === 'win32';
+export const isMac = process.platform === 'darwin';
 
 let recorderBackend: IRecorderBackend | undefined;
 let processPoller: IProcessPoller | undefined;

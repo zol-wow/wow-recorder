@@ -10,7 +10,10 @@ jest.mock('config/ConfigService', () => ({
 jest.mock('main/main', () => ({ send: jest.fn() }));
 jest.mock('main/util', () => ({}));
 jest.mock('main/EditorService', () => ({}));
-jest.mock('main/platform', () => ({ getRecorderBackend: () => ({}) }));
+jest.mock('main/platform', () => ({
+  getRecorderBackend: () => ({}),
+  isMac: true,
+}));
 const poller = { wowRunning: true };
 jest.mock('utils/Poller', () => ({
   __esModule: true,
@@ -74,16 +77,6 @@ const makeRecorder = (initialWindows: number[]) => {
 };
 
 describe('mac window capture follows the WoW window', () => {
-  const realPlatform = process.platform;
-
-  beforeAll(() => {
-    Object.defineProperty(process, 'platform', { value: 'darwin' });
-  });
-
-  afterAll(() => {
-    Object.defineProperty(process, 'platform', { value: realPlatform });
-  });
-
   beforeEach(() => {
     poller.wowRunning = true;
     jest.useFakeTimers();
