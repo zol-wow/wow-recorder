@@ -23,6 +23,9 @@ interface IProps {
 
 const ipc = window.electron.ipcRenderer;
 
+// There's no macOS client for WoW Forever.
+const isMac = window.platformInfo?.platform === 'darwin';
+
 const FlavourSettings: FC<IProps> = (props: IProps) => {
   const { recorderStatus, config, setConfig, appState, combatLoggingStatus } =
     props;
@@ -959,7 +962,7 @@ const FlavourSettings: FC<IProps> = (props: IProps) => {
       {getDisabledText()}
       {getRetailSettings()}
       {getClassicSettings()}
-      {getForeverSettings()}
+      {!isMac && getForeverSettings()}
 
       {config.showAllGamesLogPathSettings && (
         <>

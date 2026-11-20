@@ -17,6 +17,9 @@ interface IProps {
   setConfig: Dispatch<SetStateAction<ConfigurationSchema>>;
 }
 
+// macOS has no NTFS, so the check is skipped there.
+const isMac = window.platformInfo?.platform === 'darwin';
+
 const WindowsSettings = (props: IProps) => {
   const { appState, config, setConfig } = props;
 
@@ -179,12 +182,13 @@ const WindowsSettings = (props: IProps) => {
         setHardwareAcceleration,
         Phrase.HardwareAccelerationDescription,
       )}
-      {getSwitchForm(
-        'validateNtfs',
-        Phrase.ValidateNtfsLabel,
-        setValidateNtfs,
-        Phrase.ValidateNtfsDescription,
-      )}
+      {!isMac &&
+        getSwitchForm(
+          'validateNtfs',
+          Phrase.ValidateNtfsLabel,
+          setValidateNtfs,
+          Phrase.ValidateNtfsDescription,
+        )}
     </div>
   );
 };

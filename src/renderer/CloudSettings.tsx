@@ -52,6 +52,9 @@ import CharacterFilterDialog from './CharacterFilterDialog';
 
 const ipc = window.electron.ipcRenderer;
 
+// There's no macOS client for WoW Forever.
+const isMac = window.platformInfo?.platform === 'darwin';
+
 const raidDifficultyOptions = [
   { name: 'LFR', phrase: Phrase.LFR },
   { name: 'Normal', phrase: Phrase.Normal },
@@ -1067,7 +1070,7 @@ const CloudSettings = (props: IProps) => {
             <div className="flex flex-row gap-x-6">
               {getCloudUploadSwitch()}
               {getRetailUploadSwitch()}
-              {getForeverUploadSwitch()}
+              {!isMac && getForeverUploadSwitch()}
               {getClassicUploadSwitch()}
               {getCloudUploadRateLimitSwitch()}
               {getRateLimitField()}
